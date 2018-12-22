@@ -6,3 +6,5 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
+ipnet = "2.0"
+toml = "0.4"

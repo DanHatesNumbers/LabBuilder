@@ -1,0 +1,30 @@
+[[package]]
+name = "LabBuilder"
+version = "0.1.0"
+dependencies = [
+ "ipnet 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "toml 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ipnet"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "serde"
+version = "1.0.82"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "toml"
+version = "0.4.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "serde 1.0.82 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[metadata]
+"checksum ipnet 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e61c2da0d0f700c77d2d313dbf4f93e41d235fa12c6681fee06621036df4c2af"
+"checksum serde 1.0.82 (registry+https://github.com/rust-lang/crates.io-index)" = "6fa52f19aee12441d5ad11c9a00459122bd8f98707cadf9778c540674f1935b6"
+"checksum toml 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)" = "758664fc71a3a69038656bee8b6be6477d2a6c315a6b81f7081f591bffa4111f"
