@@ -1,5 +1,4 @@
 use ipnet::Ipv4Net;
-use std::net::Ipv4Addr;
 
 #[derive(Debug, PartialEq)]
 pub struct Network {

@@ -7,7 +7,6 @@ use crate::lib::scenario::Scenario;
 use clap::{App, AppSettings, Arg, SubCommand};
 
 use std::fs;
-use std::fs::File;
 use std::path::Path;
 
 fn main() -> Result<(), std::boxed::Box<std::error::Error>> {
