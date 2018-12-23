@@ -3,6 +3,7 @@ use crate::lib::system::System;
 use ipnet::Ipv4Net;
 use toml::Value;
 
+#[allow(unused_imports)]
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
