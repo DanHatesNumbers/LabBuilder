@@ -71,3 +71,108 @@ impl Network {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parsing_network_without_name_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            "Could not read network name".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_name_that_is_not_a_string_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = 42
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            "Could not read network name as a string".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_without_type_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            "Could not read network type for network: TestNet".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_type_that_is_not_a_string_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            type = 42
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            "Could not read network type as a string for network: TestNet".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_type_that_is_not_valid_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            type = "NotValid"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            "Could not parse network type as a valid type for network: TestNet. Valid types are: Public, Internal".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_invalid_subnet_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.1"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            "Could not parse subnet as a valid CIDR range for network: TestNet".to_string()
+        );
+        Ok(())
+    }
+}
