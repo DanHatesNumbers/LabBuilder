@@ -32,7 +32,7 @@ fn main() -> Result<(), std::boxed::Box<std::error::Error>> {
         let scenario_path = Path::new(plan.value_of("scenario").unwrap());
 
         let scenario_toml = fs::read_to_string(scenario_path)?.parse::<Value>()?;
-        println!("{:?}", Scenario::parse_scenario(&scenario_toml));
+        println!("{:?}", Scenario::from_toml(&scenario_toml));
     };
 
     Ok(())

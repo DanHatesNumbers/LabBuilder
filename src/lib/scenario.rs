@@ -13,7 +13,7 @@ pub struct Scenario<'a> {
 }
 
 impl<'a> Scenario<'a> {
-    pub fn parse_scenario(
+    pub fn from_toml(
         scenario_toml: &'a Value,
     ) -> Result<Scenario, std::boxed::Box<std::error::Error>> {
         let mut scenario = Scenario {
@@ -188,7 +188,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not get scenario from configuration".to_string()
         );
         Ok(())
@@ -211,7 +211,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read name of scenario from configuration".to_string()
         );
         Ok(())
@@ -235,7 +235,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read name of scenario as a string".to_string()
         );
         Ok(())
@@ -255,7 +255,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not get systems from configuration".to_string()
         );
         Ok(())
@@ -278,7 +278,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read name of system".to_string()
         );
         Ok(())
@@ -302,7 +302,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read name of system as a string".to_string()
         );
         Ok(())
@@ -325,7 +325,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read base_box for system: Test System".to_string()
         );
         Ok(())
@@ -349,7 +349,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read base_box as a string for system: Test System".to_string()
         );
         Ok(())
@@ -372,7 +372,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read networks for system: Test System".to_string()
         );
         Ok(())
@@ -396,7 +396,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not parse networks for system: Test System".to_string()
         );
         Ok(())
@@ -416,7 +416,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read networks from configuration".to_string()
         );
         Ok(())
@@ -439,7 +439,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read network name".to_string()
         );
         Ok(())
@@ -463,7 +463,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read network name as a string".to_string()
         );
         Ok(())
@@ -486,7 +486,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read network type for network: TestNet".to_string()
         );
         Ok(())
@@ -510,7 +510,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not read network type as a string for network: TestNet".to_string()
         );
         Ok(())
@@ -534,7 +534,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not parse network type as a valid type for network: TestNet. Valid types are: Public, Internal".to_string()
         );
         Ok(())
@@ -558,7 +558,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             "Could not parse subnet as a valid CIDR range for network: TestNet".to_string()
         );
         Ok(())
@@ -582,7 +582,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *Scenario::parse_scenario(&input).unwrap_err().description(),
+            *Scenario::from_toml(&input).unwrap_err().description(),
             r#"System "Test System" is configured to use network "OtherNet" but no network with that name could be found"#.to_string()
         );
         Ok(())
@@ -613,7 +613,7 @@ mod tests {
         "#
         .parse::<Value>()?;
 
-        let scenario = Scenario::parse_scenario(&input)?;
+        let scenario = Scenario::from_toml(&input)?;
 
         assert_eq!(scenario.name, "Test scenario");
         assert_eq!(scenario.networks.len(), 1);
