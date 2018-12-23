@@ -111,7 +111,7 @@ fn parse_scenario<'a>(
                 .ok_or("Could not read name of system as a string")?
                 .into();
 
-            let mut system_networks: Result<Vec<&Network>, std::boxed::Box<std::error::Error>> =
+            let system_networks: Result<Vec<&Network>, std::boxed::Box<std::error::Error>> =
                 system_toml
                     .get("networks")
                     .ok_or(format!(
