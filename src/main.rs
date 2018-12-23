@@ -24,7 +24,7 @@ fn parse_scenario<'a>(
 
     scenario.name = scenario_toml
         .get("scenario")
-        .ok_or("Could not get Scenario from configuration")?
+        .ok_or("Could not get scenario from configuration")?
         .get("name")
         .ok_or("Could not read name of scenario from configuration")?
         .as_str()
@@ -41,10 +41,22 @@ mod tests {
     #[test]
     fn parsing_toml_without_scenario_block_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
-        let input = r#"[NotScenario]"#.parse::<Value>()?;
+        let input = r#"
+            [Notscenario]
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
         assert_eq!(
             *parse_scenario(&input).unwrap_err().description(),
-            "Could not get Scenario from configuration".to_string()
+            "Could not get scenario from configuration".to_string()
         );
         Ok(())
     }
@@ -52,10 +64,19 @@ mod tests {
     #[test]
     fn parsing_toml_without_scenario_name_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
-        let input = r#"[scenario]
-            notname = "blah"
+        let input = r#"
+            [scenario]
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
+
         assert_eq!(
             *parse_scenario(&input).unwrap_err().description(),
             "Could not read name of scenario from configuration".to_string()
@@ -66,13 +87,346 @@ mod tests {
     #[test]
     fn parsing_toml_with_scenario_name_that_is_not_a_string_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
-        let input = r#"[scenario]
+        let input = r#"
+            [scenario]
             name = 42
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
+
         assert_eq!(
             *parse_scenario(&input).unwrap_err().description(),
             "Could not read name of scenario as a string".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_toml_without_systems_array_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not get systems from configuration".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_system_without_name_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read name of system".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_system_with_name_that_is_not_a_string_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = 42
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read name of system as a string".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_system_without_base_box_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read base_box for system: Test System".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_system_with_base_box_that_is_not_a_string_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = 42
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read base_box as a string for system: Test System".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_system_without_networks_array_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read networks for system: Test System".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_system_with_networks_array_containing_something_other_than_strings_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = [42]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not parse networks for system: Test System".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_toml_without_networks_array_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read networks from configuration".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_without_name_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read network name".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_name_that_is_not_a_string_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = 42
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read network name as a string".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_without_type_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read network type for network: TestNet".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_type_that_is_not_a_string_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = 42
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not read network type as a string for network: TestNet".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_type_that_is_not_valid_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "NotValid"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not parse network type as a valid type for network: TestNet. Valid types are: Public, Internal".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_system_with_networks_array_containing_non_existant_network_name_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["OtherNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "System 'Test System' is configured to use network 'OtherNet' but no network with that name could be found".to_string()
         );
         Ok(())
     }
@@ -82,7 +436,7 @@ mod tests {
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
             [scenario]
-            name = "Test Scenario"
+            name = "Test scenario"
             
             [[systems]]
             name = "Desktop"
@@ -104,7 +458,7 @@ mod tests {
 
         let scenario = parse_scenario(&input)?;
 
-        assert_eq!(scenario.name, "Test Scenario");
+        assert_eq!(scenario.name, "Test scenario");
         assert_eq!(scenario.networks.len(), 1);
         assert_eq!(scenario.systems.len(), 2);
 
