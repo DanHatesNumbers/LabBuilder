@@ -12,157 +12,160 @@ pub struct Scenario<'a> {
     pub networks: Vec<Network>,
 }
 
-pub fn parse_scenario<'a>(
-    scenario_toml: &'a Value,
-) -> Result<Scenario, std::boxed::Box<std::error::Error>> {
-    let mut scenario = Scenario {
-        name: "".into(),
-        networks: Vec::new(),
-        systems: Vec::new(),
-    };
+impl<'a> Scenario<'a> {
+    pub fn parse_scenario(
+        scenario_toml: &'a Value,
+    ) -> Result<Scenario, std::boxed::Box<std::error::Error>> {
+        let mut scenario = Scenario {
+            name: "".into(),
+            networks: Vec::new(),
+            systems: Vec::new(),
+        };
 
-    scenario.name = scenario_toml
-        .get("scenario")
-        .ok_or("Could not get scenario from configuration")?
-        .get("name")
-        .ok_or("Could not read name of scenario from configuration")?
-        .as_str()
-        .ok_or("Could not read name of scenario as a string")?
-        .into();
+        scenario.name = scenario_toml
+            .get("scenario")
+            .ok_or("Could not get scenario from configuration")?
+            .get("name")
+            .ok_or("Could not read name of scenario from configuration")?
+            .as_str()
+            .ok_or("Could not read name of scenario as a string")?
+            .into();
 
-    let networks: Result<Vec<Network>, std::boxed::Box<std::error::Error>> = scenario_toml
-        .get("networks")
-        .ok_or("Could not read networks from configuration")?
-        .as_array()
-        .ok_or("Could not read networks from configuration")?
-        .into_iter()
-        .map(|network_toml| {
-            let network_name = network_toml
-                .get("name")
-                .ok_or("Could not read network name")?
-                .as_str()
-                .ok_or("Could not read network name as a string")?
-                .into();
+        let networks: Result<Vec<Network>, std::boxed::Box<std::error::Error>> = scenario_toml
+            .get("networks")
+            .ok_or("Could not read networks from configuration")?
+            .as_array()
+            .ok_or("Could not read networks from configuration")?
+            .into_iter()
+            .map(|network_toml| {
+                let network_name = network_toml
+                    .get("name")
+                    .ok_or("Could not read network name")?
+                    .as_str()
+                    .ok_or("Could not read network name as a string")?
+                    .into();
 
-            let network_type_unparsed = network_toml
-                .get("type")
-                .ok_or(format!(
-                    "Could not read network type for network: {}",
-                    network_name
-                ))?
-                .as_str()
-                .ok_or(format!(
-                    "Could not read network type as a string for network: {}",
-                    network_name
-                ))?
-                .into();
+                let network_type_unparsed = network_toml
+                    .get("type")
+                    .ok_or(format!(
+                        "Could not read network type for network: {}",
+                        network_name
+                    ))?
+                    .as_str()
+                    .ok_or(format!(
+                        "Could not read network type as a string for network: {}",
+                        network_name
+                    ))?
+                    .into();
 
-            let network_type = match network_type_unparsed {
-                "Public" => Ok(NetworkType::Public),
-                "Internal" => Ok(NetworkType::Internal),
-                _ => Err(format!(
-                    "Could not parse network type as a valid type for network: {}. Valid types are: Public, Internal",
-                    network_name
-                )),
-            };
+                let network_type = match network_type_unparsed {
+                    "Public" => Ok(NetworkType::Public),
+                    "Internal" => Ok(NetworkType::Internal),
+                    _ => Err(format!(
+                        "Could not parse network type as a valid type for network: {}. Valid types are: Public, Internal",
+                        network_name
+                    )),
+                };
 
-            let subnet: Ipv4Net = network_toml
-                .get("subnet")
-                .ok_or(format!(
-                    "Could not read subnet for network: {}",
-                    network_name))?
-                .as_str()
-                .ok_or(format!(
-                    "Could not read subnet as string for network: {}",
-                    network_name))?
-                .parse()
-                .map_err(|_| format!(
-                    "Could not parse subnet as a valid CIDR range for network: {}",
-                    network_name))?;
+                let subnet: Ipv4Net = network_toml
+                    .get("subnet")
+                    .ok_or(format!(
+                        "Could not read subnet for network: {}",
+                        network_name))?
+                    .as_str()
+                    .ok_or(format!(
+                        "Could not read subnet as string for network: {}",
+                        network_name))?
+                    .parse()
+                    .map_err(|_| format!(
+                        "Could not parse subnet as a valid CIDR range for network: {}",
+                        network_name))?;
 
-            Ok(Network {
-                name: network_name,
-                network_type: network_type?,
-                subnet: subnet,
+                Ok(Network {
+                    name: network_name,
+                    network_type: network_type?,
+                    subnet: subnet,
+                })
             })
-        })
-        .collect();
+            .collect();
 
-    scenario.networks.append(&mut networks?);
+        scenario.networks.append(&mut networks?);
 
-    let systems: Result<Vec<System>, std::boxed::Box<std::error::Error>> = scenario_toml
-        .get("systems")
-        .ok_or("Could not get systems from configuration")?
-        .as_array()
-        .ok_or("Could not get systems from configuration")?
-        .into_iter()
-        .map(|system_toml| {
-            let mut system = System {
-                name: "".into(),
-                networks: Vec::new(),
-                base_box: "".into(),
-            };
+        let systems: Result<Vec<System>, std::boxed::Box<std::error::Error>> = scenario_toml
+            .get("systems")
+            .ok_or("Could not get systems from configuration")?
+            .as_array()
+            .ok_or("Could not get systems from configuration")?
+            .into_iter()
+            .map(|system_toml| {
+                let mut system = System {
+                    name: "".into(),
+                    networks: Vec::new(),
+                    base_box: "".into(),
+                };
 
-            system.name = system_toml
-                .get("name")
-                .ok_or("Could not read name of system")?
-                .as_str()
-                .ok_or("Could not read name of system as a string")?
-                .into();
+                system.name = system_toml
+                    .get("name")
+                    .ok_or("Could not read name of system")?
+                    .as_str()
+                    .ok_or("Could not read name of system as a string")?
+                    .into();
 
-            let system_networks: Result<Vec<&Network>, std::boxed::Box<std::error::Error>> =
-                system_toml
-                    .get("networks")
-                    .ok_or(format!(
-                        "Could not read networks for system: {}",
-                        system.name
-                    ))?
-                    .as_array()
-                    .ok_or(format!(
-                        "Could not read networks for system: {}",
-                        system.name
-                    ))?
-                    .into_iter()
-                    .map(|network_name_toml| {
-                        let network_name = network_name_toml.as_str().ok_or(format!(
-                            "Could not parse networks for system: {}",
+                let system_networks: Result<Vec<&Network>, std::boxed::Box<std::error::Error>> =
+                    system_toml
+                        .get("networks")
+                        .ok_or(format!(
+                            "Could not read networks for system: {}",
                             system.name
-                        ))?;
+                        ))?
+                        .as_array()
+                        .ok_or(format!(
+                            "Could not read networks for system: {}",
+                            system.name
+                        ))?
+                        .into_iter()
+                        .map(|network_name_toml| {
+                            let network_name = network_name_toml.as_str().ok_or(format!(
+                                "Could not parse networks for system: {}",
+                                system.name
+                            ))?;
 
-                        Ok(scenario
-                            .networks
-                            .iter()
-                            .find(|&network| network.name == network_name)
-                            .ok_or(format!(
-                                r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
-                                system.name, network_name 
-                            ))?)
-                    })
-                    .collect();
+                            Ok(scenario
+                                .networks
+                                .iter()
+                                .find(|&network| network.name == network_name)
+                                .ok_or(format!(
+                                    r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
+                                    system.name, network_name 
+                                ))?)
+                        })
+                        .collect();
 
-            system.networks.append(&mut system_networks?);
+                system.networks.append(&mut system_networks?);
 
-            system.base_box = system_toml
-                .get("base_box")
-                .ok_or(format!(
-                    "Could not read base_box for system: {}",
-                    system.name
-                ))?
-                .as_str()
-                .ok_or(format!(
-                    "Could not read base_box as a string for system: {}",
-                    system.name
-                ))?
-                .into();
+                system.base_box = system_toml
+                    .get("base_box")
+                    .ok_or(format!(
+                        "Could not read base_box for system: {}",
+                        system.name
+                    ))?
+                    .as_str()
+                    .ok_or(format!(
+                        "Could not read base_box as a string for system: {}",
+                        system.name
+                    ))?
+                    .into();
 
-            Ok(system)
-        })
-        .collect();
+                Ok(system)
+            })
+            .collect();
 
-    scenario.systems.append(&mut systems?);
+        scenario.systems.append(&mut systems?);
 
-    Ok(scenario)
+        Ok(scenario)
+    }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -185,7 +188,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not get scenario from configuration".to_string()
         );
         Ok(())
@@ -208,7 +211,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read name of scenario from configuration".to_string()
         );
         Ok(())
@@ -232,7 +235,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read name of scenario as a string".to_string()
         );
         Ok(())
@@ -252,7 +255,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not get systems from configuration".to_string()
         );
         Ok(())
@@ -275,7 +278,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read name of system".to_string()
         );
         Ok(())
@@ -299,7 +302,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read name of system as a string".to_string()
         );
         Ok(())
@@ -322,7 +325,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read base_box for system: Test System".to_string()
         );
         Ok(())
@@ -346,7 +349,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read base_box as a string for system: Test System".to_string()
         );
         Ok(())
@@ -369,7 +372,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read networks for system: Test System".to_string()
         );
         Ok(())
@@ -393,7 +396,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not parse networks for system: Test System".to_string()
         );
         Ok(())
@@ -413,7 +416,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read networks from configuration".to_string()
         );
         Ok(())
@@ -436,7 +439,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read network name".to_string()
         );
         Ok(())
@@ -460,7 +463,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read network name as a string".to_string()
         );
         Ok(())
@@ -483,7 +486,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read network type for network: TestNet".to_string()
         );
         Ok(())
@@ -507,7 +510,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not read network type as a string for network: TestNet".to_string()
         );
         Ok(())
@@ -531,7 +534,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not parse network type as a valid type for network: TestNet. Valid types are: Public, Internal".to_string()
         );
         Ok(())
@@ -555,7 +558,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             "Could not parse subnet as a valid CIDR range for network: TestNet".to_string()
         );
         Ok(())
@@ -579,7 +582,7 @@ mod tests {
         .parse::<Value>()?;
 
         assert_eq!(
-            *parse_scenario(&input).unwrap_err().description(),
+            *Scenario::parse_scenario(&input).unwrap_err().description(),
             r#"System "Test System" is configured to use network "OtherNet" but no network with that name could be found"#.to_string()
         );
         Ok(())
@@ -610,7 +613,7 @@ mod tests {
         "#
         .parse::<Value>()?;
 
-        let scenario = parse_scenario(&input)?;
+        let scenario = Scenario::parse_scenario(&input)?;
 
         assert_eq!(scenario.name, "Test scenario");
         assert_eq!(scenario.networks.len(), 1);

@@ -2,13 +2,13 @@ mod lib;
 
 use toml::Value;
 
+use crate::lib::scenario::Scenario;
+
 use clap::{App, AppSettings, Arg, SubCommand};
 
 use std::fs;
 use std::fs::File;
 use std::path::Path;
-
-use crate::lib::scenario::parse_scenario;
 
 fn main() -> Result<(), std::boxed::Box<std::error::Error>> {
     let arg_matches = App::new("Lab Builder")
@@ -33,7 +33,7 @@ fn main() -> Result<(), std::boxed::Box<std::error::Error>> {
         let scenario_path = Path::new(plan.value_of("scenario").unwrap());
 
         let scenario_toml = fs::read_to_string(scenario_path)?.parse::<Value>()?;
-        println!("{:?}", parse_scenario(&scenario_toml));
+        println!("{:?}", Scenario::parse_scenario(&scenario_toml));
     };
 
     Ok(())
