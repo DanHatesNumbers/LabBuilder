@@ -31,6 +31,34 @@ fn parse_scenario<'a>(
         .ok_or("Could not read name of scenario as a string")?
         .into();
 
+    let systems: Result<Vec<System>, std::boxed::Box<std::error::Error>> = scenario_toml
+        .get("systems")
+        .ok_or("Could not get systems from configuration")?
+        .as_array()
+        .ok_or("Could not get systems from configuration")?
+        .into_iter()
+        .map(|system_toml| {
+            let mut system = System {
+                name: "".into(),
+                networks: Vec::new(),
+                base_box: "".into(),
+            };
+
+            system.name = system_toml
+                .get("name")
+                .ok_or("Could not read name of system")?
+                .as_str()
+                .ok_or("Could not read name of system as a string")?
+                .into();
+
+            Ok((system))
+        })
+        .collect();
+
+    if systems.is_err() {
+        return Err(systems.unwrap_err());
+    }
+
     Ok(scenario)
 }
 
