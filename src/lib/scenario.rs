@@ -3,6 +3,8 @@ use crate::lib::system::System;
 use ipnet::Ipv4Net;
 use toml::Value;
 
+use std::str::FromStr;
+
 #[derive(Debug, PartialEq)]
 pub struct Scenario<'a> {
     pub name: String,
