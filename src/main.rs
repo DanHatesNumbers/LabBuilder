@@ -31,6 +31,66 @@ fn parse_scenario<'a>(
         .ok_or("Could not read name of scenario as a string")?
         .into();
 
+    let networks: Result<Vec<Network>, std::boxed::Box<std::error::Error>> = scenario_toml
+        .get("networks")
+        .ok_or("Could not read networks from configuration")?
+        .as_array()
+        .ok_or("Could not read networks from configuration")?
+        .into_iter()
+        .map(|network_toml| {
+            let network_name = network_toml
+                .get("name")
+                .ok_or("Could not read network name")?
+                .as_str()
+                .ok_or("Could not read network name as a string")?
+                .into();
+
+            let network_type_unparsed = network_toml
+                .get("type")
+                .ok_or(format!(
+                    "Could not read network type for network: {}",
+                    network_name
+                ))?
+                .as_str()
+                .ok_or(format!(
+                    "Could not read network type as a string for network: {}",
+                    network_name
+                ))?
+                .into();
+
+            let network_type = match network_type_unparsed {
+                "Public" => Ok(NetworkType::Public),
+                "Internal" => Ok(NetworkType::Internal),
+                _ => Err(format!(
+                    "Could not parse network type as a valid type for network: {}. Valid types are: Public, Internal",
+                    network_name
+                )),
+            };
+
+            let subnet: Ipv4Net = network_toml
+                .get("subnet")
+                .ok_or(format!(
+                    "Could not read subnet for network: {}",
+                    network_name))?
+                .as_str()
+                .ok_or(format!(
+                    "Could not read subnet as string for network: {}",
+                    network_name))?
+                .parse()
+                .map_err(|_| format!(
+                    "Could not parse subnet as a valid CIDR range for network: {}",
+                    network_name))?;
+
+            Ok(Network {
+                name: network_name,
+                network_type: network_type?,
+                subnet: subnet,
+            })
+        })
+        .collect();
+
+    scenario.networks.append(&mut networks?);
+
     let systems: Result<Vec<System>, std::boxed::Box<std::error::Error>> = scenario_toml
         .get("systems")
         .ok_or("Could not get systems from configuration")?
@@ -64,13 +124,11 @@ fn parse_scenario<'a>(
                 ))?
                 .into();
 
-            Ok((system))
+            Ok(system)
         })
         .collect();
 
-    if systems.is_err() {
-        return Err(systems.unwrap_err());
-    }
+    scenario.systems.append(&mut systems?);
 
     Ok(scenario)
 }
@@ -449,6 +507,30 @@ mod tests {
     }
 
     #[test]
+    fn parsing_network_with_invalid_subnet_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.1"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *parse_scenario(&input).unwrap_err().description(),
+            "Could not parse subnet as a valid CIDR range for network: TestNet".to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
     fn parsing_system_with_networks_array_containing_non_existant_network_name_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
@@ -467,7 +549,7 @@ mod tests {
 
         assert_eq!(
             *parse_scenario(&input).unwrap_err().description(),
-            "System 'Test System' is configured to use network 'OtherNet' but no network with that name could be found".to_string()
+            r#"System "Test System" is configured to use network "OtherNet" but no network with that name could be found"#.to_string()
         );
         Ok(())
     }
@@ -491,7 +573,7 @@ mod tests {
 
             [[networks]]
             name = "LAN"
-            network_type = "internal"
+            type = "Internal"
             subnet = "192.168.0.1/24"
                 
         "#
@@ -511,11 +593,11 @@ mod tests {
         );
 
         assert_eq!(scenario.systems[0].name, "Desktop");
-        assert_eq!(scenario.systems[0].networks[0], scenario.networks[0]);
+        assert_eq!(scenario.systems[0].networks[0], &scenario.networks[0]);
         assert_eq!(scenario.systems[0].base_box, "Windows 10");
 
         assert_eq!(scenario.systems[1].name, "Server");
-        assert_eq!(scenario.systems[1].networks[1], scenario.networks[0]);
+        assert_eq!(scenario.systems[1].networks[1], &scenario.networks[0]);
         assert_eq!(scenario.systems[1].base_box, "Debian");
 
         Ok(())

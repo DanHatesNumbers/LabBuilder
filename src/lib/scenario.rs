@@ -5,5 +5,5 @@ use crate::lib::system::System;
 pub struct Scenario<'a> {
     pub name: String,
     pub systems: Vec<System<'a>>,
-    pub networks: Vec<&'a Network>,
+    pub networks: Vec<Network>,
 }
