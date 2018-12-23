@@ -51,6 +51,19 @@ fn parse_scenario<'a>(
                 .ok_or("Could not read name of system as a string")?
                 .into();
 
+            system.base_box = system_toml
+                .get("base_box")
+                .ok_or(format!(
+                    "Could not read base_box for system: {}",
+                    system.name
+                ))?
+                .as_str()
+                .ok_or(format!(
+                    "Could not read base_box as a string for system: {}",
+                    system.name
+                ))?
+                .into();
+
             Ok((system))
         })
         .collect();
