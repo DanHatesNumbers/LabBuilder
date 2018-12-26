@@ -94,7 +94,7 @@ mod tests {
         })];
 
         assert_eq!(
-            *Scenario::from_toml(&input).unwrap_err().description(),
+            *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read name of system".to_string()
         );
         Ok(())
