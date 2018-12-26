@@ -92,7 +92,7 @@ impl Scenario {
                                     r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
                                     system.name, network_name 
                                 ))?
-                                .map(Rc::clone)
+                                .map(Rc::clone))
                         })
                         .collect();
 
