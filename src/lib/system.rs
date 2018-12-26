@@ -76,6 +76,7 @@ impl System {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lib::network::NetworkType;
     
     #[test]
     fn parsing_system_without_name_should_fail_with_msg(
