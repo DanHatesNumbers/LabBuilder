@@ -90,7 +90,7 @@ mod tests {
         let networks = vec![Rc::new(Network {
             name:"TestNet".into(),
             network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse()
+            subnet: "192.168.0.0/24".parse().unwrap()
         })];
 
         assert_eq!(
@@ -113,7 +113,7 @@ mod tests {
         let networks = vec![Rc::new(Network {
             name:"TestNet".into(),
             network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse()
+            subnet: "192.168.0.0/24".parse().unwrap()
         })];
 
         assert_eq!(
@@ -135,7 +135,7 @@ mod tests {
         let networks = vec![Rc::new(Network {
             name:"TestNet".into(),
             network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse()
+            subnet: "192.168.0.0/24".parse().unwrap()
         })];
 
         assert_eq!(
@@ -158,7 +158,7 @@ mod tests {
         let networks = vec![Rc::new(Network {
             name:"TestNet".into(),
             network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse()
+            subnet: "192.168.0.0/24".parse().unwrap()
         })];
 
         assert_eq!(
@@ -180,7 +180,7 @@ mod tests {
         let networks = vec![Rc::new(Network {
             name:"TestNet".into(),
             network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse()
+            subnet: "192.168.0.0/24".parse().unwrap()
         })];
 
         assert_eq!(
@@ -203,7 +203,7 @@ mod tests {
         let networks = vec![Rc::new(Network {
             name:"TestNet".into(),
             network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse()
+            subnet: "192.168.0.0/24".parse().unwrap()
         })];
 
         assert_eq!(
