@@ -1,5 +1,6 @@
 use ipnet::Ipv4Net;
 use toml::Value;
+use std::rc::Rc;
 
 #[derive(Debug, PartialEq)]
 pub struct Network {
@@ -15,7 +16,7 @@ pub enum NetworkType {
 }
 
 impl Network {
-    pub fn from_toml(network_toml: &Value) -> Result<Network, std::boxed::Box<std::error::Error>> {
+    pub fn from_toml(network_toml: &Value) -> Result<Rc<Network>, std::boxed::Box<std::error::Error>> {
         let network_name = network_toml
             .get("name")
             .ok_or("Could not read network name")?
@@ -64,11 +65,11 @@ impl Network {
                 )
             })?;
 
-        Ok(Network {
+        Ok(Rc::new(Network {
             name: network_name,
             network_type: network_type?,
             subnet: subnet,
-        })
+        }))
     }
 }
 

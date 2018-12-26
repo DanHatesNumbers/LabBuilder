@@ -6,17 +6,18 @@ use toml::Value;
 
 #[allow(unused_imports)]
 use std::str::FromStr;
+use std::rc::Rc;
 
 #[derive(Debug, PartialEq)]
-pub struct Scenario<'a> {
+pub struct Scenario {
     pub name: String,
-    pub systems: Vec<System<'a>>,
-    pub networks: Vec<Network>,
+    pub systems: Vec<System>,
+    pub networks: Vec<Rc<Network>>,
 }
 
-impl<'a> Scenario<'a> {
+impl Scenario {
     pub fn from_toml(
-        scenario_toml: &'a Value,
+        scenario_toml: &Value,
     ) -> Result<Scenario, std::boxed::Box<std::error::Error>> {
         let mut scenario = Scenario {
             name: "".into(),
@@ -33,7 +34,7 @@ impl<'a> Scenario<'a> {
             .ok_or("Could not read name of scenario as a string")?
             .into();
 
-        let networks: Result<Vec<Network>, std::boxed::Box<std::error::Error>> = scenario_toml
+        let networks: Result<Vec<Rc<Network>>, std::boxed::Box<std::error::Error>> = scenario_toml
             .get("networks")
             .ok_or("Could not read networks from configuration")?
             .as_array()
@@ -64,7 +65,7 @@ impl<'a> Scenario<'a> {
                     .ok_or("Could not read name of system as a string")?
                     .into();
 
-                let system_networks: Result<Vec<&Network>, std::boxed::Box<std::error::Error>> =
+                let system_networks: Result<Vec<Rc<Network>>, std::boxed::Box<std::error::Error>> =
                     system_toml
                         .get("networks")
                         .ok_or(format!(
@@ -90,7 +91,8 @@ impl<'a> Scenario<'a> {
                                 .ok_or(format!(
                                     r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
                                     system.name, network_name 
-                                ))?)
+                                ))?
+                                .map(Rc::clone)
                         })
                         .collect();
 
