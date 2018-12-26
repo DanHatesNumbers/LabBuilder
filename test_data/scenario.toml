@@ -1,0 +1,10 @@
+[scenario]
+name = "Test Scenario"
+[[systems]]
+name = "Desktop"
+base_box = "Windows 10"
+networks = ["LAN"]
+[[networks]]
+name = "LAN"
+type = "Internal"
+subnet = "192.168.0.1/24"
