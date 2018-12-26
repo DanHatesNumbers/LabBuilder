@@ -79,17 +79,16 @@ mod tests {
     fn parsing_system_without_name_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
-            [scenario]
-            name = "Test scenario"
-            [[systems]]
             networks = ["TestNet"]
             base_box = "Debian"
-            [[networks]]
-            name = "TestNet"
-            type = "Internal"
-            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
+        
+        let networks = vec![Rc::new(Network {
+            name:"TestNet".into(),
+            network_type: NetworkType::Internal,
+            subnet: "192.168.0.0/24".parse()
+        })];
 
         assert_eq!(
             *Scenario::from_toml(&input).unwrap_err().description(),
