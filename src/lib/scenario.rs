@@ -84,15 +84,14 @@ impl Scenario {
                                 system.name
                             ))?;
 
-                            Ok(scenario
+                            Ok(Rc::clone(scenario
                                 .networks
                                 .iter()
                                 .find(|&network| network.name == network_name)
                                 .ok_or(format!(
                                     r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
                                     system.name, network_name 
-                                ))?
-                                .map(Rc::clone))
+                                ))?))
                         })
                         .collect();
 
