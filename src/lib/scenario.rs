@@ -439,11 +439,11 @@ mod tests {
         );
 
         assert_eq!(scenario.systems[0].name, "Desktop");
-        assert_eq!(scenario.systems[0].networks[0], &scenario.networks[0]);
+        assert_eq!(scenario.systems[0].networks[0], scenario.networks[0]);
         assert_eq!(scenario.systems[0].base_box, "Windows 10");
 
         assert_eq!(scenario.systems[1].name, "Server");
-        assert_eq!(scenario.systems[1].networks[0], &scenario.networks[0]);
+        assert_eq!(scenario.systems[1].networks[0], scenario.networks[0]);
         assert_eq!(scenario.systems[1].base_box, "Debian");
 
         Ok(())
