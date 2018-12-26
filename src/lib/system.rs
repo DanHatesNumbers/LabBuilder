@@ -75,6 +75,8 @@ impl System {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    
     #[test]
     fn parsing_system_without_name_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
