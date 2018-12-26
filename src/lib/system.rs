@@ -104,21 +104,20 @@ mod tests {
     fn parsing_system_with_name_that_is_not_a_string_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
-            [scenario]
-            name = "Test scenario"
-            [[systems]]
             name = 42
             networks = ["TestNet"]
             base_box = "Debian"
-            [[networks]]
-            name = "TestNet"
-            type = "Internal"
-            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
+        
+        let networks = vec![Rc::new(Network {
+            name:"TestNet".into(),
+            network_type: NetworkType::Internal,
+            subnet: "192.168.0.0/24".parse()
+        })];
 
         assert_eq!(
-            *Scenario::from_toml(&input).unwrap_err().description(),
+            *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read name of system as a string".to_string()
         );
         Ok(())
@@ -128,20 +127,19 @@ mod tests {
     fn parsing_system_without_base_box_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
-            [scenario]
-            name = "Test scenario"
-            [[systems]]
             name = "Test System"
             networks = ["TestNet"]
-            [[networks]]
-            name = "TestNet"
-            type = "Internal"
-            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
+        
+        let networks = vec![Rc::new(Network {
+            name:"TestNet".into(),
+            network_type: NetworkType::Internal,
+            subnet: "192.168.0.0/24".parse()
+        })];
 
         assert_eq!(
-            *Scenario::from_toml(&input).unwrap_err().description(),
+            *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read base_box for system: Test System".to_string()
         );
         Ok(())
@@ -151,21 +149,20 @@ mod tests {
     fn parsing_system_with_base_box_that_is_not_a_string_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
-            [scenario]
-            name = "Test scenario"
-            [[systems]]
             name = "Test System"
             networks = ["TestNet"]
             base_box = 42
-            [[networks]]
-            name = "TestNet"
-            type = "Internal"
-            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
+        
+        let networks = vec![Rc::new(Network {
+            name:"TestNet".into(),
+            network_type: NetworkType::Internal,
+            subnet: "192.168.0.0/24".parse()
+        })];
 
         assert_eq!(
-            *Scenario::from_toml(&input).unwrap_err().description(),
+            *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read base_box as a string for system: Test System".to_string()
         );
         Ok(())
@@ -175,20 +172,19 @@ mod tests {
     fn parsing_system_without_networks_array_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
-            [scenario]
-            name = "Test scenario"
-            [[systems]]
             name = "Test System"
             base_box = "Debian"
-            [[networks]]
-            name = "TestNet"
-            type = "Internal"
-            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
+        
+        let networks = vec![Rc::new(Network {
+            name:"TestNet".into(),
+            network_type: NetworkType::Internal,
+            subnet: "192.168.0.0/24".parse()
+        })];
 
         assert_eq!(
-            *Scenario::from_toml(&input).unwrap_err().description(),
+            *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read networks for system: Test System".to_string()
         );
         Ok(())
@@ -198,21 +194,20 @@ mod tests {
     fn parsing_system_with_networks_array_containing_something_other_than_strings_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
-            [scenario]
-            name = "Test scenario"
-            [[systems]]
             name = "Test System"
             networks = [42]
             base_box = "Debian"
-            [[networks]]
-            name = "TestNet"
-            type = "Internal"
-            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
+        
+        let networks = vec![Rc::new(Network {
+            name:"TestNet".into(),
+            network_type: NetworkType::Internal,
+            subnet: "192.168.0.0/24".parse()
+        })];
 
         assert_eq!(
-            *Scenario::from_toml(&input).unwrap_err().description(),
+            *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not parse networks for system: Test System".to_string()
         );
         Ok(())
