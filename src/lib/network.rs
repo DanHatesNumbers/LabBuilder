@@ -180,4 +180,55 @@ mod tests {
         );
         Ok(())
     }
+
+    #[test]
+    fn parsing_network_with_subnet_too_small_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.1/30"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            r#"Network "TestNet" configured with a subnet smaller than /29. Networks smaller than /29 can't have multiple hosts."#.to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_non_rfc1918_compliant_subnet_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            type = "Internal"
+            subnet = "1.1.1.1/8"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            r#"Subnet configured for network "TestNet" is not RFC 1918 compliant. Subnets must be in valid alocation for private networks."#.to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_network_with_subnet_start_in_rfc1918_space_and_end_outside_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/15"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            r#"Subnet configured for network "TestNet" starts in RFC1918 space but extends beyond RFC1918 space."#.to_string()
+        );
+        Ok(())
+    }
 }
