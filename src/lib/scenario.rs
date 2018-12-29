@@ -4,6 +4,7 @@ use crate::lib::system::System;
 use ipnet::Ipv4Net;
 use toml::Value;
 
+use std::collections::HashMap;
 use std::rc::Rc;
 #[allow(unused_imports)]
 use std::str::FromStr;
@@ -45,6 +46,8 @@ impl Scenario {
 
         scenario.networks.append(&mut networks?);
 
+        scenario.are_network_names_unique()?;
+
         let systems: Result<Vec<System>, std::boxed::Box<std::error::Error>> = scenario_toml
             .get("systems")
             .ok_or("Could not get systems from configuration")?
@@ -57,6 +60,34 @@ impl Scenario {
         scenario.systems.append(&mut systems?);
 
         Ok(scenario)
+    }
+
+    fn are_network_names_unique(&self) -> Result<(), String> {
+        let names = self.networks.iter().fold(HashMap::new(), |mut acc, x| {
+            acc.entry((x.name).to_string())
+                .and_modify(|e| *e += 1)
+                .or_insert(1);
+
+            acc
+        });
+
+        let dup_names: Vec<&String> = names
+            .iter()
+            .filter_map(|n| match n.1 {
+                1 => None,
+                _ => Some(n.0),
+            })
+            .collect();
+
+        let first_dupe_name = dup_names.iter().nth(0);
+
+        match first_dupe_name {
+            Some(name) => Err(format!(
+                r#"Multiple networks parsed with name "{}". Network names must be unique."#,
+                name
+            )),
+            None => Ok(()),
+        }
     }
 }
 
@@ -221,7 +252,7 @@ mod tests {
 
         assert_eq!(
             *Scenario::from_toml(&input).unwrap_err().description(),
-            r#"Multiple networks parsed with name "TestNet". Network names must be unique"#
+            r#"Multiple networks parsed with name "TestNet". Network names must be unique."#
                 .to_string()
         );
         Ok(())
