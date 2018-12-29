@@ -4,9 +4,9 @@ use crate::lib::system::System;
 use ipnet::Ipv4Net;
 use toml::Value;
 
+use std::rc::Rc;
 #[allow(unused_imports)]
 use std::str::FromStr;
-use std::rc::Rc;
 
 #[derive(Debug, PartialEq)]
 pub struct Scenario {
@@ -51,9 +51,7 @@ impl Scenario {
             .as_array()
             .ok_or("Could not get systems from configuration")?
             .into_iter()
-            .map(|system_toml| {
-                System::from_toml(&system_toml, &scenario.networks)
-            })
+            .map(|system_toml| System::from_toml(&system_toml, &scenario.networks))
             .collect();
 
         scenario.systems.append(&mut systems?);
@@ -61,7 +59,6 @@ impl Scenario {
         Ok(scenario)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -197,6 +194,35 @@ mod tests {
         assert_eq!(
             *Scenario::from_toml(&input).unwrap_err().description(),
             r#"System "Test System" is configured to use network "OtherNet" but no network with that name could be found"#.to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_scenario_with_duplicate_network_names_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.1.0/24"
+        "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Scenario::from_toml(&input).unwrap_err().description(),
+            r#"Multiple networks parsed with name "TestNet". Network names must be unique"#
+                .to_string()
         );
         Ok(())
     }
