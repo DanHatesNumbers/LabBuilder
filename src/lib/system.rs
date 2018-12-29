@@ -76,8 +76,7 @@ impl System {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lib::network::NetworkType;
-    
+
     #[test]
     fn parsing_system_without_name_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
@@ -87,11 +86,13 @@ mod tests {
             "#
         .parse::<Value>()?;
         
-        let networks = vec![Rc::new(Network {
-            name:"TestNet".into(),
-            network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse().unwrap()
-        })];
+        let networks: Vec<Rc<Network>> = vec![
+            Network::from_toml(&r#"
+                name = "TestNet"
+                type = "Internal"
+                subnet = "192.168.0.0/24"
+            "#.parse::<Value>().unwrap()).unwrap()
+        ];
 
         assert_eq!(
             *System::from_toml(&input, &networks).unwrap_err().description(),
@@ -109,13 +110,15 @@ mod tests {
             base_box = "Debian"
             "#
         .parse::<Value>()?;
-        
-        let networks = vec![Rc::new(Network {
-            name:"TestNet".into(),
-            network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse().unwrap()
-        })];
 
+        let networks: Vec<Rc<Network>> = vec![
+            Network::from_toml(&r#"
+                name = "TestNet"
+                type = "Internal"
+                subnet = "192.168.0.0/24"
+            "#.parse::<Value>().unwrap()).unwrap()
+        ];
+        
         assert_eq!(
             *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read name of system as a string".to_string()
@@ -131,13 +134,15 @@ mod tests {
             networks = ["TestNet"]
             "#
         .parse::<Value>()?;
-        
-        let networks = vec![Rc::new(Network {
-            name:"TestNet".into(),
-            network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse().unwrap()
-        })];
 
+        let networks: Vec<Rc<Network>> = vec![
+            Network::from_toml(&r#"
+                name = "TestNet"
+                type = "Internal"
+                subnet = "192.168.0.0/24"
+            "#.parse::<Value>().unwrap()).unwrap()
+        ];
+    
         assert_eq!(
             *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read base_box for system: Test System".to_string()
@@ -154,13 +159,15 @@ mod tests {
             base_box = 42
             "#
         .parse::<Value>()?;
-        
-        let networks = vec![Rc::new(Network {
-            name:"TestNet".into(),
-            network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse().unwrap()
-        })];
 
+        let networks: Vec<Rc<Network>> = vec![
+            Network::from_toml(&r#"
+                name = "TestNet"
+                type = "Internal"
+                subnet = "192.168.0.0/24"
+            "#.parse::<Value>().unwrap()).unwrap()
+        ];
+    
         assert_eq!(
             *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read base_box as a string for system: Test System".to_string()
@@ -176,13 +183,15 @@ mod tests {
             base_box = "Debian"
             "#
         .parse::<Value>()?;
-        
-        let networks = vec![Rc::new(Network {
-            name:"TestNet".into(),
-            network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse().unwrap()
-        })];
 
+        let networks: Vec<Rc<Network>> = vec![
+            Network::from_toml(&r#"
+                name = "TestNet"
+                type = "Internal"
+                subnet = "192.168.0.0/24"
+            "#.parse::<Value>().unwrap()).unwrap()
+        ];
+    
         assert_eq!(
             *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not read networks for system: Test System".to_string()
@@ -199,13 +208,15 @@ mod tests {
             base_box = "Debian"
             "#
         .parse::<Value>()?;
-        
-        let networks = vec![Rc::new(Network {
-            name:"TestNet".into(),
-            network_type: NetworkType::Internal,
-            subnet: "192.168.0.0/24".parse().unwrap()
-        })];
 
+        let networks: Vec<Rc<Network>> = vec![
+            Network::from_toml(&r#"
+                name = "TestNet"
+                type = "Internal"
+                subnet = "192.168.0.0/24"
+            "#.parse::<Value>().unwrap()).unwrap()
+        ];
+    
         assert_eq!(
             *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not parse networks for system: Test System".to_string()
