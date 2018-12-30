@@ -1,8 +1,8 @@
 use ipnet::{Ipv4AddrRange, Ipv4Net};
+use std::cell::RefCell;
 use std::collections::hash_set::HashSet;
 use std::net::Ipv4Addr;
 use std::rc::Rc;
-use std::cell::RefCell;
 use toml::Value;
 
 #[derive(Debug, PartialEq)]
@@ -11,7 +11,7 @@ pub struct Network {
     pub network_type: NetworkType,
     pub subnet: Option<Ipv4Net>,
     available_hosts: Option<Ipv4AddrRange>,
-    allocated_hosts: Option<RefCell<HashSet<Ipv4Addr>>>
+    allocated_hosts: Option<RefCell<HashSet<Ipv4Addr>>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -89,7 +89,7 @@ impl Network {
                             "172.16.0.0/12".parse::<Ipv4Net>().unwrap(),
                             "192.168.0.0/16".parse::<Ipv4Net>().unwrap(),
                         ];
-                        
+
                         let privacy_result = private_nets.iter()
                             .any(|&priv_net| priv_net.contains(&subnet));
 
@@ -114,20 +114,23 @@ impl Network {
             network_type: network_type,
             subnet: subnet,
             available_hosts: available_hosts,
-            allocated_hosts: allocated_hosts
+            allocated_hosts: allocated_hosts,
         }))
     }
 
     pub fn get_address_lease(&self) -> Option<Ipv4Addr> {
         if let Some(allocated_hosts) = &self.allocated_hosts {
-            let leased_addr = self.available_hosts?.skip_while(|addr| allocated_hosts.borrow().contains(addr)).next();
+            let leased_addr = self
+                .available_hosts?
+                .skip_while(|addr| allocated_hosts.borrow().contains(addr))
+                .next();
             return match leased_addr {
                 Some(addr) => {
                     allocated_hosts.borrow_mut().insert(addr);
                     return Some(addr);
-                },
-                None => None
-            }
+                }
+                None => None,
+            };
         }
         None
     }
