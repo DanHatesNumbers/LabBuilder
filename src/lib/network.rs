@@ -77,6 +77,12 @@ impl Network {
                             0...30 => Ok(subnet),
                             _ => Err(format!(r#"Network "{}" configured with a subnet smaller than /30. Networks smaller than /30 can't have multiple hosts."#, network_name))
                         }
+                    })
+                    .and_then(|subnet: Ipv4Net| {
+                        return match subnet.addr().is_private() {
+                            true => Ok(subnet),
+                            false => Err(format!(r#"Subnet configured for network "{}" is not RFC 1918 compliant. Subnets must be in valid allocation for private networks."#, network_name))
+                        }
                     })?
             );
 
@@ -230,7 +236,7 @@ mod tests {
 
         assert_eq!(
             *Network::from_toml(&input).unwrap_err().description(),
-            r#"Subnet configured for network "TestNet" is not RFC 1918 compliant. Subnets must be in valid alocation for private networks."#.to_string()
+            r#"Subnet configured for network "TestNet" is not RFC 1918 compliant. Subnets must be in valid allocation for private networks."#.to_string()
         );
         Ok(())
     }
