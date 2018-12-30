@@ -54,7 +54,7 @@ impl Scenario {
             .as_array()
             .ok_or("Could not get systems from configuration")?
             .into_iter()
-            .map(|system_toml| System::from_toml(&system_toml, &scenario.networks))
+            .map(|system_toml| System::from_toml(&system_toml))
             .collect();
 
         scenario.systems.append(&mut systems?);
@@ -206,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn parsing_system_with_networks_array_containing_non_existant_network_name_should_fail_with_msg(
+    fn configuring_networking_for_system_with_networks_array_containing_non_existant_network_name_should_fail_with_msg(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let input = r#"
             [scenario]
@@ -222,8 +222,10 @@ mod tests {
             "#
         .parse::<Value>()?;
 
+        let mut scenario = Scenario::from_toml(&input)?;
+
         assert_eq!(
-            *Scenario::from_toml(&input).unwrap_err().description(),
+            *scenario.systems[0].configure_networking(&scenario.networks).unwrap_err().description(),
             r#"System "Test System" is configured to use network "OtherNet" but no network with that name could be found"#.to_string()
         );
         Ok(())
@@ -297,11 +299,9 @@ mod tests {
         );
 
         assert_eq!(scenario.systems[0].name, "Desktop");
-        assert_eq!(scenario.systems[0].networks[0], scenario.networks[0]);
         assert_eq!(scenario.systems[0].base_box, "Windows 10");
 
         assert_eq!(scenario.systems[1].name, "Server");
-        assert_eq!(scenario.systems[1].networks[0], scenario.networks[0]);
         assert_eq!(scenario.systems[1].base_box, "Debian");
 
         Ok(())

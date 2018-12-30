@@ -9,15 +9,17 @@ use std::net::Ipv4Addr;
 pub struct System {
     pub name: String,
     pub networks: Vec<Rc<Network>>,
+    network_names: Vec<String>,
     pub base_box: String,
     pub leased_network_addresses: HashMap<String, Vec<Ipv4Addr>>
 }
 
 impl System {
-    pub fn from_toml(system_toml: &Value, scenario_networks: &Vec<Rc<Network>>) -> Result<System, std::boxed::Box<std::error::Error>> {
+    pub fn from_toml(system_toml: &Value) -> Result<System, std::boxed::Box<std::error::Error>> {
         let mut system = System {
                     name: "".into(),
                     networks: Vec::new(),
+                    network_names: Vec::new(),
                     base_box: "".into(),
                     leased_network_addresses: HashMap::new()
         };
@@ -29,7 +31,7 @@ impl System {
             .ok_or("Could not read name of system as a string")?
             .into();
 
-        let system_networks: Result<Vec<Rc<Network>>, std::boxed::Box<std::error::Error>> =
+        let network_names: Result<Vec<String>, std::boxed::Box<std::error::Error>> =
             system_toml
                 .get("networks")
                 .ok_or(format!(
@@ -47,18 +49,11 @@ impl System {
                         "Could not parse networks for system: {}",
                         system.name
                     ))?;
-
-                    Ok(Rc::clone(scenario_networks
-                        .iter()
-                        .find(|&network| network.name == network_name)
-                        .ok_or(format!(
-                            r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
-                            system.name, network_name 
-                        ))?))
+                    Ok(network_name.to_string())
                 })
                 .collect();
 
-        system.networks.append(&mut system_networks?);
+        system.network_names.append(&mut network_names?);
 
         system.base_box = system_toml
             .get("base_box")
@@ -76,7 +71,22 @@ impl System {
         Ok(system)
     }
 
-    pub fn configure_networking(&mut self) -> Result<(), String> {
+    pub fn configure_networking(&mut self, scenario_networks: &Vec<Rc<Network>>) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let system_networks: Result<Vec<Rc<Network>>, std::boxed::Box<std::error::Error>> =
+            self.network_names.iter()
+                .map(|network_name|
+                    Ok(Rc::clone(scenario_networks
+                        .iter()
+                        .find(|&network| &network.name == network_name)
+                        .ok_or(format!(
+                            r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
+                            self.name, network_name 
+                        ))?))
+                )
+                .collect();
+
+        self.networks.append(&mut system_networks?);
+
         let internal_nets: Vec<Rc<Network>> = self.networks.iter()
             .cloned()
             .filter(|net| net.network_type == NetworkType::Internal)
@@ -114,16 +124,8 @@ mod tests {
             "#
         .parse::<Value>()?;
         
-        let networks: Vec<Rc<Network>> = vec![
-            Network::from_toml(&r#"
-                name = "TestNet"
-                type = "Internal"
-                subnet = "192.168.0.0/24"
-            "#.parse::<Value>().unwrap()).unwrap()
-        ];
-
         assert_eq!(
-            *System::from_toml(&input, &networks).unwrap_err().description(),
+            *System::from_toml(&input).unwrap_err().description(),
             "Could not read name of system".to_string()
         );
         Ok(())
@@ -139,16 +141,8 @@ mod tests {
             "#
         .parse::<Value>()?;
 
-        let networks: Vec<Rc<Network>> = vec![
-            Network::from_toml(&r#"
-                name = "TestNet"
-                type = "Internal"
-                subnet = "192.168.0.0/24"
-            "#.parse::<Value>().unwrap()).unwrap()
-        ];
-        
         assert_eq!(
-            *System::from_toml(&input, &networks).unwrap_err().description(),
+            *System::from_toml(&input).unwrap_err().description(),
             "Could not read name of system as a string".to_string()
         );
         Ok(())
@@ -162,17 +156,9 @@ mod tests {
             networks = ["TestNet"]
             "#
         .parse::<Value>()?;
-
-        let networks: Vec<Rc<Network>> = vec![
-            Network::from_toml(&r#"
-                name = "TestNet"
-                type = "Internal"
-                subnet = "192.168.0.0/24"
-            "#.parse::<Value>().unwrap()).unwrap()
-        ];
     
         assert_eq!(
-            *System::from_toml(&input, &networks).unwrap_err().description(),
+            *System::from_toml(&input).unwrap_err().description(),
             "Could not read base_box for system: Test System".to_string()
         );
         Ok(())
@@ -187,17 +173,9 @@ mod tests {
             base_box = 42
             "#
         .parse::<Value>()?;
-
-        let networks: Vec<Rc<Network>> = vec![
-            Network::from_toml(&r#"
-                name = "TestNet"
-                type = "Internal"
-                subnet = "192.168.0.0/24"
-            "#.parse::<Value>().unwrap()).unwrap()
-        ];
     
         assert_eq!(
-            *System::from_toml(&input, &networks).unwrap_err().description(),
+            *System::from_toml(&input).unwrap_err().description(),
             "Could not read base_box as a string for system: Test System".to_string()
         );
         Ok(())
@@ -211,17 +189,9 @@ mod tests {
             base_box = "Debian"
             "#
         .parse::<Value>()?;
-
-        let networks: Vec<Rc<Network>> = vec![
-            Network::from_toml(&r#"
-                name = "TestNet"
-                type = "Internal"
-                subnet = "192.168.0.0/24"
-            "#.parse::<Value>().unwrap()).unwrap()
-        ];
     
         assert_eq!(
-            *System::from_toml(&input, &networks).unwrap_err().description(),
+            *System::from_toml(&input).unwrap_err().description(),
             "Could not read networks for system: Test System".to_string()
         );
         Ok(())
@@ -237,16 +207,8 @@ mod tests {
             "#
         .parse::<Value>()?;
 
-        let networks: Vec<Rc<Network>> = vec![
-            Network::from_toml(&r#"
-                name = "TestNet"
-                type = "Internal"
-                subnet = "192.168.0.0/24"
-            "#.parse::<Value>().unwrap()).unwrap()
-        ];
-    
         assert_eq!(
-            *System::from_toml(&input, &networks).unwrap_err().description(),
+            *System::from_toml(&input).unwrap_err().description(),
             "Could not parse networks for system: Test System".to_string()
         );
         Ok(())
@@ -267,7 +229,7 @@ mod tests {
         "#.parse::<Value>()?;
 
         let mut scenario = Scenario::from_toml(&scenario_toml)?;
-        scenario.systems[0].configure_networking()?;
+        scenario.systems[0].configure_networking(&scenario.networks)?;
 
         let leased_addresses = &scenario.systems[0].leased_network_addresses;
         assert_eq!(leased_addresses.is_empty(), true);
@@ -290,7 +252,7 @@ mod tests {
         "#.parse::<Value>()?;
 
         let mut scenario = Scenario::from_toml(&scenario_toml)?;
-        scenario.systems[0].configure_networking()?;
+        scenario.systems[0].configure_networking(&scenario.networks)?;
 
         let leased_addresses = &scenario.systems[0].leased_network_addresses;
         assert_eq!(leased_addresses.len(), 1);
@@ -315,7 +277,7 @@ mod tests {
         "#.parse::<Value>()?;
 
         let mut scenario = Scenario::from_toml(&scenario_toml)?;
-        scenario.systems[0].configure_networking()?;
+        scenario.systems[0].configure_networking(&scenario.networks)?;
 
         let leased_addresses = &scenario.systems[0].leased_network_addresses;
         assert_eq!(leased_addresses.len(), 1);
@@ -347,7 +309,7 @@ mod tests {
         "#.parse::<Value>()?;
 
         let mut scenario = Scenario::from_toml(&scenario_toml)?;
-        scenario.systems[0].configure_networking()?;
+        scenario.systems[0].configure_networking(&scenario.networks)?;
 
         let leased_addresses = &scenario.systems[0].leased_network_addresses;
         assert_eq!(leased_addresses.len(), 2);
@@ -381,8 +343,8 @@ mod tests {
         "#.parse::<Value>()?;
 
         let mut scenario = Scenario::from_toml(&scenario_toml)?;
-        scenario.systems[0].configure_networking()?;
-        scenario.systems[1].configure_networking()?;
+        scenario.systems[0].configure_networking(&scenario.networks)?;
+        scenario.systems[1].configure_networking(&scenario.networks)?;
 
         let mut leased_addresses = Vec::new();
         leased_addresses.push(&scenario.systems[0].leased_network_addresses);
@@ -424,12 +386,12 @@ mod tests {
         "#.parse::<Value>()?;
         
         let mut scenario = Scenario::from_toml(&scenario_toml)?;
-        scenario.systems[0].configure_networking()?;
-        scenario.systems[1].configure_networking()?;
-        let result = scenario.systems[2].configure_networking();
+        scenario.systems[0].configure_networking(&scenario.networks)?;
+        scenario.systems[1].configure_networking(&scenario.networks)?;
+        let result = scenario.systems[2].configure_networking(&scenario.networks);
         
         assert_eq!(
-            result.unwrap_err(),
+            result.unwrap_err().description(),
             r#"Subnet for network "TestNet" does not have enough available addresses for all systems configured to use it."#.to_string()
         );
 
