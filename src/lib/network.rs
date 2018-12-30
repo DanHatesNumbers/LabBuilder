@@ -262,4 +262,22 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn parsing_public_network_with_subnet_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            type = "Public"
+            subnet = "192.168.0.1/24"
+            "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Network::from_toml(&input).unwrap_err().description(),
+            r#"Network "TestNet" is configured as a Public network and has a subnet configured. Public networks can't have configured subnets."#.to_string()
+        );
+
+        Ok(())
+    }
 }
