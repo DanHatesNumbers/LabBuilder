@@ -1,4 +1,4 @@
-use crate::lib::network::Network;
+use crate::lib::network::{Network, NetworkType};
 
 use toml::Value;
 use std::collections::HashMap;
@@ -20,64 +20,82 @@ impl System {
                     networks: Vec::new(),
                     base_box: "".into(),
                     leased_network_addresses: HashMap::new()
-                };
+        };
 
-                system.name = system_toml
-                    .get("name")
-                    .ok_or("Could not read name of system")?
-                    .as_str()
-                    .ok_or("Could not read name of system as a string")?
-                    .into();
+        system.name = system_toml
+            .get("name")
+            .ok_or("Could not read name of system")?
+            .as_str()
+            .ok_or("Could not read name of system as a string")?
+            .into();
 
-                let system_networks: Result<Vec<Rc<Network>>, std::boxed::Box<std::error::Error>> =
-                    system_toml
-                        .get("networks")
-                        .ok_or(format!(
-                            "Could not read networks for system: {}",
-                            system.name
-                        ))?
-                        .as_array()
-                        .ok_or(format!(
-                            "Could not read networks for system: {}",
-                            system.name
-                        ))?
-                        .into_iter()
-                        .map(|network_name_toml| {
-                            let network_name = network_name_toml.as_str().ok_or(format!(
-                                "Could not parse networks for system: {}",
-                                system.name
-                            ))?;
-
-                            Ok(Rc::clone(scenario_networks
-                                .iter()
-                                .find(|&network| network.name == network_name)
-                                .ok_or(format!(
-                                    r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
-                                    system.name, network_name 
-                                ))?))
-                        })
-                        .collect();
-
-                system.networks.append(&mut system_networks?);
-
-                system.base_box = system_toml
-                    .get("base_box")
-                    .ok_or(format!(
-                        "Could not read base_box for system: {}",
+        let system_networks: Result<Vec<Rc<Network>>, std::boxed::Box<std::error::Error>> =
+            system_toml
+                .get("networks")
+                .ok_or(format!(
+                    "Could not read networks for system: {}",
+                    system.name
+                ))?
+                .as_array()
+                .ok_or(format!(
+                    "Could not read networks for system: {}",
+                    system.name
+                ))?
+                .into_iter()
+                .map(|network_name_toml| {
+                    let network_name = network_name_toml.as_str().ok_or(format!(
+                        "Could not parse networks for system: {}",
                         system.name
-                    ))?
-                    .as_str()
-                    .ok_or(format!(
-                        "Could not read base_box as a string for system: {}",
-                        system.name
-                    ))?
-                    .into();
+                    ))?;
 
-                Ok(system)
+                    Ok(Rc::clone(scenario_networks
+                        .iter()
+                        .find(|&network| network.name == network_name)
+                        .ok_or(format!(
+                            r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
+                            system.name, network_name 
+                        ))?))
+                })
+                .collect();
+
+        system.networks.append(&mut system_networks?);
+
+        system.base_box = system_toml
+            .get("base_box")
+            .ok_or(format!(
+                "Could not read base_box for system: {}",
+                system.name
+            ))?
+            .as_str()
+            .ok_or(format!(
+                "Could not read base_box as a string for system: {}",
+                system.name
+            ))?
+            .into();
+
+        Ok(system)
     }
 
     pub fn configure_networking(&mut self) -> Result<(), String> {
-        unimplemented!();
+        let internal_nets: Vec<Rc<Network>> = self.networks.iter()
+            .cloned()
+            .filter(|net| net.network_type == NetworkType::Internal)
+            .collect();
+
+        for net in internal_nets.into_iter() {
+            let leased_addr = net.get_address_lease()
+                .ok_or(format!(r#"Subnet for network "{}" does not have enough available addresses for all systems configured to use it."#, net.name.to_string()))?;
+
+            self.leased_network_addresses.entry((&net.name).to_string())
+                .and_modify(|e| {
+                    e.push(leased_addr);
+                })
+                .or_insert_with(|| {
+                    return vec![leased_addr];
+                });
+        }
+
+        Ok(())
     }
 }
 
