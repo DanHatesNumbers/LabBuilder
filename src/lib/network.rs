@@ -187,13 +187,13 @@ mod tests {
         let input = r#"
             name = "TestNet"
             type = "Internal"
-            subnet = "192.168.0.1/30"
+            subnet = "192.168.0.1/31"
             "#
         .parse::<Value>()?;
 
         assert_eq!(
             *Network::from_toml(&input).unwrap_err().description(),
-            r#"Network "TestNet" configured with a subnet smaller than /29. Networks smaller than /29 can't have multiple hosts."#.to_string()
+            r#"Network "TestNet" configured with a subnet smaller than /30. Networks smaller than /30 can't have multiple hosts."#.to_string()
         );
         Ok(())
     }
