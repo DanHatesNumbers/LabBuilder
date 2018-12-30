@@ -6,8 +6,8 @@ use toml::Value;
 pub struct Network {
     pub name: String,
     pub network_type: NetworkType,
-    pub subnet: Ipv4Net,
-    available_hosts: Ipv4AddrRange,
+    pub subnet: Option<Ipv4Net>,
+    available_hosts: Option<Ipv4AddrRange>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -47,32 +47,41 @@ impl Network {
                 "Could not parse network type as a valid type for network: {}. Valid types are: Public, Internal",
                 network_name
             )),
-        };
+        }?;
 
-        let subnet: Ipv4Net = network_toml
-            .get("subnet")
-            .ok_or(format!(
-                "Could not read subnet for network: {}",
-                network_name
-            ))?
-            .as_str()
-            .ok_or(format!(
-                "Could not read subnet as string for network: {}",
-                network_name
-            ))?
-            .parse()
-            .map_err(|_| {
-                format!(
-                    "Could not parse subnet as a valid CIDR range for network: {}",
-                    network_name
-                )
-            })?;
+        let mut subnet: Option<Ipv4Net> = None;
+        let mut available_hosts: Option<Ipv4AddrRange> = None;
+
+        if network_type == NetworkType::Internal {
+            subnet = Some(
+                network_toml
+                    .get("subnet")
+                    .ok_or(format!(
+                        "Could not read subnet for network: {}",
+                        network_name
+                    ))?
+                    .as_str()
+                    .ok_or(format!(
+                        "Could not read subnet as string for network: {}",
+                        network_name
+                    ))?
+                    .parse()
+                    .map_err(|_| {
+                        format!(
+                            "Could not parse subnet as a valid CIDR range for network: {}",
+                            network_name
+                        )
+                    })?,
+            );
+
+            available_hosts = Some(subnet.unwrap().hosts());
+        }
 
         Ok(Rc::new(Network {
             name: network_name,
-            network_type: network_type?,
+            network_type: network_type,
             subnet: subnet,
-            available_hosts: subnet.hosts(),
+            available_hosts: available_hosts,
         }))
     }
 }
@@ -229,6 +238,24 @@ mod tests {
             *Network::from_toml(&input).unwrap_err().description(),
             r#"Subnet configured for network "TestNet" starts in RFC1918 space but extends beyond RFC1918 space."#.to_string()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_public_network_should_not_configure_subnet_or_available_hosts(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            name = "TestNet"
+            type = "Public"
+            subnet = "192.168.0.0/24"
+            "#
+        .parse::<Value>()?;
+
+        let result = Network::from_toml(&input)?;
+
+        assert_eq!(result.subnet.is_none(), true);
+        assert_eq!(result.available_hosts.is_none(), true);
+
         Ok(())
     }
 }

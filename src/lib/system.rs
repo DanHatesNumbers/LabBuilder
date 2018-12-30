@@ -278,7 +278,7 @@ mod tests {
         let leased_addresses = &scenario.systems[0].leased_network_addresses;
         assert_eq!(leased_addresses.len(), 1);
         assert_eq!(leased_addresses.contains_key("TestNet"), true);
-        assert_eq!(scenario.networks[0].subnet.contains(&leased_addresses["TestNet"][0]), true);
+        assert_eq!(scenario.networks[0].subnet.unwrap().contains(&leased_addresses["TestNet"][0]), true);
         Ok(())
     }
 
@@ -304,8 +304,8 @@ mod tests {
         assert_eq!(leased_addresses.len(), 1);
         assert_eq!(leased_addresses.contains_key("TestNet"), true);
         assert_eq!(leased_addresses["TestNet"].len(), 2);
-        assert_eq!(scenario.networks[0].subnet.contains(&leased_addresses["TestNet"][0]), true);
-        assert_eq!(scenario.networks[0].subnet.contains(&leased_addresses["TestNet"][1]), true);
+        assert_eq!(scenario.networks[0].subnet.unwrap().contains(&leased_addresses["TestNet"][0]), true);
+        assert_eq!(scenario.networks[0].subnet.unwrap().contains(&leased_addresses["TestNet"][1]), true);
         assert_eq!(leased_addresses["TestNet"][0] == leased_addresses["TestNet"][1], false);
         Ok(())
     }
@@ -338,8 +338,8 @@ mod tests {
         assert_eq!(leased_addresses.contains_key("OtherNet"), true);
         assert_eq!(leased_addresses["TestNet"].len(), 1);
         assert_eq!(leased_addresses["OtherNet"].len(), 1);
-        assert_eq!(scenario.networks[0].subnet.contains(&leased_addresses["TestNet"][0]), true);
-        assert_eq!(scenario.networks[1].subnet.contains(&leased_addresses["OtherNet"][0]), true);
+        assert_eq!(scenario.networks[0].subnet.unwrap().contains(&leased_addresses["TestNet"][0]), true);
+        assert_eq!(scenario.networks[1].subnet.unwrap().contains(&leased_addresses["OtherNet"][0]), true);
 
         Ok(())
     }
@@ -375,7 +375,7 @@ mod tests {
             assert_eq!(x.len(), 1);
             assert_eq!(x.contains_key("TestNet"), true);
             assert_eq!(x["TestNet"].len(), 1);
-            assert_eq!(scenario.networks[0].subnet.contains(&x["TestNet"][0]), true);
+            assert_eq!(scenario.networks[0].subnet.unwrap().contains(&x["TestNet"][0]), true);
         }
 
         assert_eq!(leased_addresses[0]["TestNet"][0] == leased_addresses[1]["TestNet"][0], false);

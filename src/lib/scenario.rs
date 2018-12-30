@@ -292,7 +292,7 @@ mod tests {
         assert_eq!(scenario.networks[0].name, "LAN");
         assert_eq!(scenario.networks[0].network_type, NetworkType::Internal);
         assert_eq!(
-            scenario.networks[0].subnet,
+            scenario.networks[0].subnet.unwrap(),
             Ipv4Net::from_str("192.168.0.1/24").unwrap()
         );
 
