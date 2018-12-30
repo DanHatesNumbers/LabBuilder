@@ -1,13 +1,16 @@
 use crate::lib::network::Network;
 
 use toml::Value;
+use std::collections::HashMap;
 use std::rc::Rc;
+use std::net::Ipv4Addr;
 
 #[derive(Debug, PartialEq)]
 pub struct System {
     pub name: String,
     pub networks: Vec<Rc<Network>>,
     pub base_box: String,
+    pub leased_network_addresses: HashMap<String, Vec<Ipv4Addr>>
 }
 
 impl System {
@@ -16,6 +19,7 @@ impl System {
                     name: "".into(),
                     networks: Vec::new(),
                     base_box: "".into(),
+                    leased_network_addresses: HashMap::new()
                 };
 
                 system.name = system_toml
@@ -71,11 +75,17 @@ impl System {
 
                 Ok(system)
     }
+
+    pub fn configure_networking(&mut self) -> Result<(), String> {
+        unimplemented!();
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::lib::scenario::Scenario;
 
     #[test]
     fn parsing_system_without_name_should_fail_with_msg(
@@ -221,6 +231,191 @@ mod tests {
             *System::from_toml(&input, &networks).unwrap_err().description(),
             "Could not parse networks for system: Test System".to_string()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn configuring_networking_with_1_public_network_should_not_lease_address() -> Result<(), std::boxed::Box<std::error::Error>> {
+        let scenario_toml = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test system"
+            base_box = "Debian"
+            networks = ["TestNet"]
+            [[networks]]
+            name = "TestNet"
+            type = "Public"
+            subnet = "192.168.0.1/24"
+        "#.parse::<Value>()?;
+
+        let mut scenario = Scenario::from_toml(&scenario_toml)?;
+        scenario.systems[0].configure_networking()?;
+
+        let leased_addresses = &scenario.systems[0].leased_network_addresses;
+        assert_eq!(leased_addresses.is_empty(), true);
+        Ok(())
+    }
+
+    #[test]
+    fn configuring_networking_with_1_internal_network_should_work() -> Result<(), std::boxed::Box<std::error::Error>> {
+        let scenario_toml = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test system"
+            base_box = "Debian"
+            networks = ["TestNet"]
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.1/24"
+        "#.parse::<Value>()?;
+
+        let mut scenario = Scenario::from_toml(&scenario_toml)?;
+        scenario.systems[0].configure_networking()?;
+
+        let leased_addresses = &scenario.systems[0].leased_network_addresses;
+        assert_eq!(leased_addresses.len(), 1);
+        assert_eq!(leased_addresses.contains_key("TestNet"), true);
+        assert_eq!(scenario.networks[0].subnet.contains(&leased_addresses["TestNet"][0]), true);
+        Ok(())
+    }
+
+    #[test]
+    fn configuring_networking_with_2_NICs_in_same_internal_network_should_work() -> Result<(), std::boxed::Box<std::error::Error>> {
+        let scenario_toml = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test system"
+            base_box = "Debian"
+            networks = ["TestNet", "TestNet"]
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.1/24"
+        "#.parse::<Value>()?;
+
+        let mut scenario = Scenario::from_toml(&scenario_toml)?;
+        scenario.systems[0].configure_networking()?;
+
+        let leased_addresses = &scenario.systems[0].leased_network_addresses;
+        assert_eq!(leased_addresses.len(), 1);
+        assert_eq!(leased_addresses.contains_key("TestNet"), true);
+        assert_eq!(leased_addresses["TestNet"].len(), 2);
+        assert_eq!(scenario.networks[0].subnet.contains(&leased_addresses["TestNet"][0]), true);
+        assert_eq!(scenario.networks[0].subnet.contains(&leased_addresses["TestNet"][1]), true);
+        assert_eq!(leased_addresses["TestNet"][0] == leased_addresses["TestNet"][1], false);
+        Ok(())
+    }
+
+    #[test]
+    fn configuring_networking_with_2_different_internal_networks_should_work() -> Result<(), std::boxed::Box<std::error::Error>> {
+        let scenario_toml = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test system"
+            base_box = "Debian"
+            networks = ["TestNet", "OtherNet"]
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.1/24"
+            [[networks]]
+            name = "OtherNet"
+            type = "Internal"
+            subnet = "192.168.1.1/24"
+        "#.parse::<Value>()?;
+
+        let mut scenario = Scenario::from_toml(&scenario_toml)?;
+        scenario.systems[0].configure_networking()?;
+
+        let leased_addresses = &scenario.systems[0].leased_network_addresses;
+        assert_eq!(leased_addresses.len(), 2);
+        assert_eq!(leased_addresses.contains_key("TestNet"), true);
+        assert_eq!(leased_addresses.contains_key("OtherNet"), true);
+        assert_eq!(leased_addresses["TestNet"].len(), 1);
+        assert_eq!(leased_addresses["OtherNet"].len(), 1);
+        assert_eq!(scenario.networks[0].subnet.contains(&leased_addresses["TestNet"][0]), true);
+        assert_eq!(scenario.networks[1].subnet.contains(&leased_addresses["OtherNet"][0]), true);
+
+        Ok(())
+    }
+
+    #[test]
+    fn configuring_networking_for_2_systems_in_same_internal_network_should_work() -> Result<(), std::boxed::Box<std::error::Error>> {
+        let scenario_toml = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test system"
+            base_box = "Debian"
+            networks = ["TestNet"]
+            [[systems]]
+            name = "Test system 2"
+            base_box = "Debian"
+            networks = ["TestNet"]
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.1/24"
+        "#.parse::<Value>()?;
+
+        let mut scenario = Scenario::from_toml(&scenario_toml)?;
+        scenario.systems[0].configure_networking()?;
+        scenario.systems[1].configure_networking()?;
+
+        let mut leased_addresses = Vec::new();
+        leased_addresses.push(&scenario.systems[0].leased_network_addresses);
+        leased_addresses.push(&scenario.systems[1].leased_network_addresses);
+       
+        for x in leased_addresses.iter() {
+            assert_eq!(x.len(), 1);
+            assert_eq!(x.contains_key("TestNet"), true);
+            assert_eq!(x["TestNet"].len(), 1);
+            assert_eq!(scenario.networks[0].subnet.contains(&x["TestNet"][0]), true);
+        }
+
+        assert_eq!(leased_addresses[0]["TestNet"][0] == leased_addresses[1]["TestNet"][0], false);
+
+        Ok(())
+    }
+
+    #[test]
+    fn configuring_networking_for_2_systems_in_subnet_that_is_too_small_should_fail_with_msg() -> Result<(), std::boxed::Box<std::error::Error>> {
+        let scenario_toml = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test system"
+            base_box = "Debian"
+            networks = ["TestNet"]
+            [[systems]]
+            name = "Test system 2"
+            base_box = "Debian"
+            networks = ["TestNet"]
+            [[systems]]
+            name = "Test system 3"
+            base_box = "Debian"
+            networks = ["TestNet"]
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.1/30"
+        "#.parse::<Value>()?;
+        
+        let mut scenario = Scenario::from_toml(&scenario_toml)?;
+        scenario.systems[0].configure_networking()?;
+        scenario.systems[1].configure_networking()?;
+        let result = scenario.systems[2].configure_networking();
+        
+        assert_eq!(
+            result.unwrap_err(),
+            r#"Subnet for network "TestNet" does not have enough available addresses for all systems configured to use it."#.to_string()
+        );
+
         Ok(())
     }
 }
