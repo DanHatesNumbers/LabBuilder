@@ -71,7 +71,13 @@ impl Network {
                             "Could not parse subnet as a valid CIDR range for network: {}",
                             network_name
                         )
-                    })?,
+                    })
+                    .and_then(|subnet: Ipv4Net| {
+                        return match subnet.prefix_len() {
+                            0...30 => Ok(subnet),
+                            _ => Err(format!(r#"Network "{}" configured with a subnet smaller than /30. Networks smaller than /30 can't have multiple hosts."#, network_name))
+                        }
+                    })?
             );
 
             available_hosts = Some(subnet.unwrap().hosts());
