@@ -79,10 +79,19 @@ impl Network {
                         }
                     })
                     .and_then(|subnet: Ipv4Net| {
-                        return match subnet.addr().is_private() {
+                        let private_nets = vec![
+                            "10.0.0.0/8".parse::<Ipv4Net>().unwrap(),
+                            "172.16.0.0/12".parse::<Ipv4Net>().unwrap(),
+                            "192.168.0.0/16".parse::<Ipv4Net>().unwrap(),
+                        ];
+                        
+                        let privacy_result = private_nets.iter()
+                            .any(|&priv_net| priv_net.contains(&subnet));
+
+                        return match privacy_result {
                             true => Ok(subnet),
                             false => Err(format!(r#"Subnet configured for network "{}" is not RFC 1918 compliant. Subnets must be in valid allocation for private networks."#, network_name))
-                        }
+                        };
                     })?
             );
 
@@ -253,7 +262,7 @@ mod tests {
 
         assert_eq!(
             *Network::from_toml(&input).unwrap_err().description(),
-            r#"Subnet configured for network "TestNet" starts in RFC1918 space but extends beyond RFC1918 space."#.to_string()
+            r#"Subnet configured for network "TestNet" is not RFC 1918 compliant. Subnets must be in valid allocation for private networks."#.to_string() 
         );
         Ok(())
     }
