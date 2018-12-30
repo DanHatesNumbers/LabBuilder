@@ -75,6 +75,11 @@ impl Network {
             );
 
             available_hosts = Some(subnet.unwrap().hosts());
+        } else {
+            match network_toml.get("subnet") {
+                None => Ok(()),
+                Some(_) => Err(format!(r#"Network "{}" is configured as a Public network and has a subnet configured. Public networks can't have configured subnets."#, network_name)),
+            }?
         }
 
         Ok(Rc::new(Network {
@@ -247,7 +252,6 @@ mod tests {
         let input = r#"
             name = "TestNet"
             type = "Public"
-            subnet = "192.168.0.0/24"
             "#
         .parse::<Value>()?;
 

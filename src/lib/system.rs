@@ -246,7 +246,6 @@ mod tests {
             [[networks]]
             name = "TestNet"
             type = "Public"
-            subnet = "192.168.0.1/24"
         "#.parse::<Value>()?;
 
         let mut scenario = Scenario::from_toml(&scenario_toml)?;
