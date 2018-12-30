@@ -119,20 +119,17 @@ impl Network {
     }
 
     pub fn get_address_lease(&self) -> Option<Ipv4Addr> {
-        if let Some(available) = self.available_hosts {
-            if let Some(allocated) = &self.allocated_hosts {
-                if let Some(available_addr) = available.skip_while(|addr| allocated.borrow().contains(addr)).next() {
-                    allocated.borrow_mut().insert(available_addr);
-                    return Some(available_addr);
-                } else {
-                    return None;
-                }
-            } else {
-                return None;
+        if let Some(allocated_hosts) = &self.allocated_hosts {
+            let leased_addr = self.available_hosts?.skip_while(|addr| allocated_hosts.borrow().contains(addr)).next();
+            return match leased_addr {
+                Some(addr) => {
+                    allocated_hosts.borrow_mut().insert(addr);
+                    return Some(addr);
+                },
+                None => None
             }
-        } else {
-            return None;
         }
+        None
     }
 }
 
