@@ -335,21 +335,23 @@ mod tests {
         "#
         .parse::<Value>()?;
 
-        let scenario = Scenario::from_toml(&input)?;
+        let mut scenario = Scenario::from_toml(&input)?;
 
-        let expected = r#"
-        Vagrant.configure("2") do |config|
-            config.vm.define "Desktop" do |Desktop|
-                Desktop.vm.box = "Windows 10"
-                Desktop.vm.network "private_network", ip: "192.168.0.1", virtualbox__intnet: "LAN"
-            end
-            config.vm.define "Server" do |Server|
-                Server.vm.box = "Debian"
-                Server.vm.network "private_network", ip: "192.168.0.2", virtualbox__intnet: "LAN"
-            end
-        end
-        "#
-        .to_string();
+        for system in scenario.systems.iter_mut() {
+            system.configure_networking(&scenario.networks)?;
+        }
+
+        let expected = r#"Vagrant.configure("2") do |config|
+    config.vm.define "Desktop" do |Desktop|
+        Desktop.vm.box = "Windows 10"
+        Desktop.vm.network "private_network", ip: "192.168.0.1", virtualbox__intnet: "LAN"
+    end
+    config.vm.define "Server" do |Server|
+        Server.vm.box = "Debian"
+        Server.vm.network "private_network", ip: "192.168.0.2", virtualbox__intnet: "LAN"
+    end
+end"#
+            .to_string();
 
         assert_eq!(scenario.to_vagrantfile().unwrap(), expected);
         Ok(())
