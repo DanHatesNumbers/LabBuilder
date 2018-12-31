@@ -1,3 +1,6 @@
+use crate::lib::indentation_aware_string_builder::{
+    IndentationAwareStringBuilder, IndentationType,
+};
 use crate::lib::network::{Network, NetworkType};
 use crate::lib::system::System;
 
@@ -91,7 +94,47 @@ impl Scenario {
     }
 
     pub fn to_vagrantfile(&self) -> Result<String, std::boxed::Box<std::error::Error>> {
-        Ok("BLAH".to_string())
+        let mut builder = IndentationAwareStringBuilder::new();
+        builder
+            .with_indentation_type(IndentationType::Spaces)
+            .with_tab_size(4);
+
+        builder.add("Vagrant.configure(\"2\") do |config|".to_string());
+        builder.increase_indentation();
+
+        for system in self.systems.iter() {
+            builder.add(format!(
+                r#"config.vm.define "{}" do |{}|"#,
+                system.name, system.name
+            ));
+            builder.increase_indentation();
+
+            builder.add(format!(r#"{}.vm.box = "{}""#, system.name, system.base_box));
+
+            for net in system.networks.iter().cloned() {
+                match net.network_type {
+                    NetworkType::Internal => {
+                        for lease in system.leased_network_addresses[&net.name].iter() {
+                            builder.add(format!(
+                                r#"{}.vm.network "private_network", ip: "{}", virtualbox__intnet: "{}""#,
+                                system.name, lease, net.name
+                            ));
+                        }
+                    }
+                    NetworkType::Public => {
+                        builder.add(format!(r#"{}.vm.network "public_network""#, system.name))
+                    }
+                }
+            }
+
+            builder.decrease_indentation();
+            builder.add("end".to_string());
+        }
+
+        builder.decrease_indentation();
+        builder.add("end".to_string());
+
+        Ok(builder.build_string())
     }
 }
 
