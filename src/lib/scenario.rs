@@ -1,3 +1,6 @@
+use crate::lib::indentation_aware_string_builder::{
+    IndentationAwareStringBuilder, IndentationType,
+};
 use crate::lib::network::{Network, NetworkType};
 use crate::lib::system::System;
 
@@ -88,6 +91,50 @@ impl Scenario {
             )),
             None => Ok(()),
         }
+    }
+
+    pub fn to_vagrantfile(&self) -> Result<String, std::boxed::Box<std::error::Error>> {
+        let mut builder = IndentationAwareStringBuilder::new();
+        builder
+            .with_indentation_type(IndentationType::Spaces)
+            .with_tab_size(4);
+
+        builder.add("Vagrant.configure(\"2\") do |config|".to_string());
+        builder.increase_indentation();
+
+        for system in self.systems.iter() {
+            builder.add(format!(
+                r#"config.vm.define "{}" do |{}|"#,
+                system.name, system.name
+            ));
+            builder.increase_indentation();
+
+            builder.add(format!(r#"{}.vm.box = "{}""#, system.name, system.base_box));
+
+            for net in system.networks.iter().cloned() {
+                match net.network_type {
+                    NetworkType::Internal => {
+                        for lease in system.leased_network_addresses[&net.name].iter() {
+                            builder.add(format!(
+                                r#"{}.vm.network "private_network", ip: "{}", virtualbox__intnet: "{}""#,
+                                system.name, lease, net.name
+                            ));
+                        }
+                    }
+                    NetworkType::Public => {
+                        builder.add(format!(r#"{}.vm.network "public_network""#, system.name))
+                    }
+                }
+            }
+
+            builder.decrease_indentation();
+            builder.add("end".to_string());
+        }
+
+        builder.decrease_indentation();
+        builder.add("end".to_string());
+
+        Ok(builder.build_string())
     }
 }
 
@@ -304,6 +351,52 @@ mod tests {
         assert_eq!(scenario.systems[1].name, "Server");
         assert_eq!(scenario.systems[1].base_box, "Debian");
 
+        Ok(())
+    }
+
+    #[test]
+    fn vagrantfile_output_for_simple_scenario_works(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+
+            [[systems]]
+            name = "Desktop"
+            networks = ["LAN"]
+            base_box = "Windows 10"
+
+            [[systems]]
+            name = "Server"
+            networks = ["LAN"]
+            base_box = "Debian"
+
+            [[networks]]
+            name = "LAN"
+            type = "Internal"
+            subnet = "192.168.0.1/24"
+        "#
+        .parse::<Value>()?;
+
+        let mut scenario = Scenario::from_toml(&input)?;
+
+        for system in scenario.systems.iter_mut() {
+            system.configure_networking(&scenario.networks)?;
+        }
+
+        let expected = r#"Vagrant.configure("2") do |config|
+    config.vm.define "Desktop" do |Desktop|
+        Desktop.vm.box = "Windows 10"
+        Desktop.vm.network "private_network", ip: "192.168.0.1", virtualbox__intnet: "LAN"
+    end
+    config.vm.define "Server" do |Server|
+        Server.vm.box = "Debian"
+        Server.vm.network "private_network", ip: "192.168.0.2", virtualbox__intnet: "LAN"
+    end
+end"#
+            .to_string();
+
+        assert_eq!(scenario.to_vagrantfile().unwrap(), expected);
         Ok(())
     }
 
