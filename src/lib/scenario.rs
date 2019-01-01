@@ -447,12 +447,12 @@ mod tests {
 
         let expected = r#"Vagrant.configure("2") do |config|
     config.vm.define "Desktop" do |desktop|
-        Desktop.vm.box = "Windows 10"
-        Desktop.vm.network "private_network", ip: "192.168.0.1", virtualbox__intnet: "LAN"
+        desktop.vm.box = "Windows 10"
+        desktop.vm.network "private_network", ip: "192.168.0.1", virtualbox__intnet: "LAN"
     end
     config.vm.define "Server" do |server|
-        Server.vm.box = "Debian"
-        Server.vm.network "private_network", ip: "192.168.0.2", virtualbox__intnet: "LAN"
+        server.vm.box = "Debian"
+        server.vm.network "private_network", ip: "192.168.0.2", virtualbox__intnet: "LAN"
     end
 end"#
             .to_string();
