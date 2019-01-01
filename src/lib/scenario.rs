@@ -6,6 +6,7 @@ use crate::lib::system::System;
 
 use ipnet::Ipv4Net;
 use toml::Value;
+use unicode_casefold::UnicodeCaseFold;
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -135,7 +136,8 @@ impl Scenario {
         for system in self.systems.iter() {
             builder.add(format!(
                 r#"config.vm.define "{}" do |{}|"#,
-                system.name, system.name
+                system.name,
+                system.name.case_fold().collect::<String>()
             ));
             builder.increase_indentation();
 
