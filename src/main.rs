@@ -11,7 +11,7 @@ use std::path::Path;
 
 fn main() -> Result<(), std::boxed::Box<std::error::Error>> {
     let arg_matches = App::new("Lab Builder")
-        .settings(&vec![AppSettings::SubcommandRequired])
+        .settings(&[AppSettings::SubcommandRequired])
         .version("0.1")
         .author("Daniel Murphy <danhatesnumbers@gmail.com>")
         .subcommand(

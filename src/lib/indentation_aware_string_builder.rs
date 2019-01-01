@@ -5,6 +5,7 @@ pub struct IndentationAwareStringBuilder {
     buffer: Vec<String>,
 }
 
+#[allow(dead_code)]
 pub enum IndentationType {
     Tabs,
     Spaces,
@@ -20,10 +21,10 @@ impl IndentationAwareStringBuilder {
         }
     }
 
-    pub fn with_indentation_type<'a>(
-        &'a mut self,
+    pub fn with_indentation_type(
+        &mut self,
         indentation_type: IndentationType,
-    ) -> &'a mut IndentationAwareStringBuilder {
+    ) -> &mut IndentationAwareStringBuilder {
         self.indentation_type = indentation_type;
 
         self.tab_size = match self.indentation_type {
@@ -34,33 +35,25 @@ impl IndentationAwareStringBuilder {
         self
     }
 
-    pub fn with_tab_size<'a>(
-        &'a mut self,
-        tab_size: usize,
-    ) -> &'a mut IndentationAwareStringBuilder {
+    pub fn with_tab_size(&mut self, tab_size: usize) -> &mut IndentationAwareStringBuilder {
         self.tab_size = Some(tab_size);
 
         self
     }
 
-    pub fn add(&mut self, new_line: String) {
+    pub fn add(&mut self, new_line: &str) {
         let indent_string = match self.indentation_type {
-            IndentationType::Spaces => vec![" ".to_string()],
-            IndentationType::Tabs => vec!["\t".to_string()],
+            IndentationType::Spaces => " ",
+            IndentationType::Tabs => "\t",
         };
-        let indentation = indent_string.iter().cloned().cycle();
-        let mut current_indentation = match self.indentation_type {
-            IndentationType::Spaces => indentation
-                .clone()
-                .take(self.current_indentation_level * self.tab_size.unwrap_or(4))
-                .collect::<String>(),
-            IndentationType::Tabs => indentation
-                .clone()
-                .take(self.current_indentation_level)
-                .collect::<String>(),
+        let current_indentation = match self.indentation_type {
+            IndentationType::Spaces => {
+                indent_string.repeat(self.current_indentation_level * self.tab_size.unwrap_or(4))
+            }
+            IndentationType::Tabs => indent_string.repeat(self.current_indentation_level),
         };
         self.buffer
-            .push(format!("{}{}", current_indentation, new_line).to_string());
+            .push(format!("{}{}", current_indentation, new_line));
     }
 
     pub fn increase_indentation(&mut self) {

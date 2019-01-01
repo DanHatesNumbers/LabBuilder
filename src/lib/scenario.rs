@@ -4,7 +4,6 @@ use crate::lib::indentation_aware_string_builder::{
 use crate::lib::network::{Network, NetworkType};
 use crate::lib::system::System;
 
-use ipnet::Ipv4Net;
 use toml::Value;
 use unicode_casefold::UnicodeCaseFold;
 
@@ -85,7 +84,7 @@ impl Scenario {
             })
             .collect();
 
-        let first_dupe_name = dup_names.iter().nth(0);
+        let first_dupe_name = dup_names.get(0);
 
         match first_dupe_name {
             Some(name) => Err(format!(
@@ -113,7 +112,7 @@ impl Scenario {
             })
             .collect();
 
-        let first_dupe_name = dup_names.iter().nth(0);
+        let first_dupe_name = dup_names.get(0);
 
         match first_dupe_name {
             Some(name) => Err(format!(
@@ -130,18 +129,18 @@ impl Scenario {
             .with_indentation_type(IndentationType::Spaces)
             .with_tab_size(4);
 
-        builder.add("Vagrant.configure(\"2\") do |config|".to_string());
+        builder.add("Vagrant.configure(\"2\") do |config|");
         builder.increase_indentation();
 
         for system in self.systems.iter() {
             let system_name_lower = system.name.case_fold().collect::<String>();
-            builder.add(format!(
+            builder.add(&format!(
                 r#"config.vm.define "{}" do |{}|"#,
                 system.name, system_name_lower
             ));
             builder.increase_indentation();
 
-            builder.add(format!(
+            builder.add(&format!(
                 r#"{}.vm.box = "{}""#,
                 system_name_lower, system.base_box
             ));
@@ -150,24 +149,24 @@ impl Scenario {
                 match net.network_type {
                     NetworkType::Internal => {
                         for lease in system.leased_network_addresses[&net.name].iter() {
-                            builder.add(format!(
+                            builder.add(&format!(
                                 r#"{}.vm.network "private_network", ip: "{}", virtualbox__intnet: "{}""#,
                                 system_name_lower, lease, net.name
                             ));
                         }
                     }
                     NetworkType::Public => {
-                        builder.add(format!(r#"{}.vm.network "public_network""#, system.name))
+                        builder.add(&format!(r#"{}.vm.network "public_network""#, system.name))
                     }
                 }
             }
 
             builder.decrease_indentation();
-            builder.add("end".to_string());
+            builder.add("end");
         }
 
         builder.decrease_indentation();
-        builder.add("end".to_string());
+        builder.add("end");
 
         Ok(builder.build_string())
     }

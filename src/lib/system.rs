@@ -26,28 +26,21 @@ impl System {
 
         system.name = system_toml
             .get("name")
-            .ok_or("Could not read name of system")?
+            .ok_or_else(|| "Could not read name of system")?
             .as_str()
-            .ok_or("Could not read name of system as a string")?
+            .ok_or_else(|| "Could not read name of system as a string")?
             .into();
 
         let network_names: Result<Vec<String>, std::boxed::Box<std::error::Error>> = system_toml
             .get("networks")
-            .ok_or(format!(
-                "Could not read networks for system: {}",
-                system.name
-            ))?
+            .ok_or_else(|| format!("Could not read networks for system: {}", system.name))?
             .as_array()
-            .ok_or(format!(
-                "Could not read networks for system: {}",
-                system.name
-            ))?
+            .ok_or_else(|| format!("Could not read networks for system: {}", system.name))?
             .into_iter()
             .map(|network_name_toml| {
-                let network_name = network_name_toml.as_str().ok_or(format!(
-                    "Could not parse networks for system: {}",
-                    system.name
-                ))?;
+                let network_name = network_name_toml.as_str().ok_or_else(|| {
+                    format!("Could not parse networks for system: {}", system.name)
+                })?;
                 Ok(network_name.to_string())
             })
             .collect();
@@ -56,15 +49,14 @@ impl System {
 
         system.base_box = system_toml
             .get("base_box")
-            .ok_or(format!(
-                "Could not read base_box for system: {}",
-                system.name
-            ))?
+            .ok_or_else(|| format!("Could not read base_box for system: {}", system.name))?
             .as_str()
-            .ok_or(format!(
-                "Could not read base_box as a string for system: {}",
-                system.name
-            ))?
+            .ok_or_else(|| {
+                format!(
+                    "Could not read base_box as a string for system: {}",
+                    system.name
+                )
+            })?
             .into();
 
         Ok(system)
@@ -72,7 +64,7 @@ impl System {
 
     pub fn configure_networking(
         &mut self,
-        scenario_networks: &Vec<Rc<Network>>,
+        scenario_networks: &[Rc<Network>],
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let system_networks: Result<Vec<Rc<Network>>, std::boxed::Box<std::error::Error>> =
             self.network_names.iter()
@@ -80,7 +72,7 @@ impl System {
                     Ok(Rc::clone(scenario_networks
                         .iter()
                         .find(|&network| &network.name == network_name)
-                        .ok_or(format!(
+                        .ok_or_else(|| format!(
                             r#"System "{}" is configured to use network "{}" but no network with that name could be found"#,
                             self.name, network_name
                         ))?))
@@ -98,7 +90,7 @@ impl System {
 
         for net in internal_nets.into_iter() {
             let leased_addr = net.get_address_lease()
-                .ok_or(format!(r#"Subnet for network "{}" does not have enough available addresses for all systems configured to use it."#, net.name.to_string()))?;
+                .ok_or_else(|| format!(r#"Subnet for network "{}" does not have enough available addresses for all systems configured to use it."#, net.name.to_string()))?;
 
             self.leased_network_addresses
                 .entry((&net.name).to_string())

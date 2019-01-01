@@ -21,6 +21,7 @@ pub enum NetworkType {
 }
 
 impl Network {
+    #[allow(clippy::useless_let_if_seq)]
     pub fn from_toml(
         network_toml: &Value,
     ) -> Result<Rc<Network>, std::boxed::Box<std::error::Error>> {
@@ -33,16 +34,15 @@ impl Network {
 
         let network_type_unparsed = network_toml
             .get("type")
-            .ok_or(format!(
+            .ok_or_else(|| format!(
                 "Could not read network type for network: {}",
                 network_name
             ))?
             .as_str()
-            .ok_or(format!(
+            .ok_or_else(|| format!(
                 "Could not read network type as a string for network: {}",
                 network_name
-            ))?
-            .into();
+            ))?;
 
         let network_type = match network_type_unparsed {
             "Public" => Ok(NetworkType::Public),
@@ -54,19 +54,17 @@ impl Network {
         }?;
 
         let mut subnet: Option<Ipv4Net> = None;
-        let mut available_hosts: Option<Ipv4AddrRange> = None;
-        let mut allocated_hosts: Option<RefCell<HashSet<Ipv4Addr>>> = None;
 
         if network_type == NetworkType::Internal {
             subnet = Some(
                 network_toml
                     .get("subnet")
-                    .ok_or(format!(
+                    .ok_or_else(|| format!(
                         "Could not read subnet for network: {}",
                         network_name
                     ))?
                     .as_str()
-                    .ok_or(format!(
+                    .ok_or_else(|| format!(
                         "Could not read subnet as string for network: {}",
                         network_name
                     ))?
@@ -77,12 +75,12 @@ impl Network {
                             network_name
                         )
                     })
-                    .and_then(|subnet: Ipv4Net| {
-                        return match subnet.prefix_len() {
+                    .and_then(|subnet: Ipv4Net| 
+                        match subnet.prefix_len() {
                             0...30 => Ok(subnet),
                             _ => Err(format!(r#"Network "{}" configured with a subnet smaller than /30. Networks smaller than /30 can't have multiple hosts."#, network_name))
                         }
-                    })
+                    )
                     .and_then(|subnet: Ipv4Net| {
                         let private_nets = vec![
                             "10.0.0.0/8".parse::<Ipv4Net>().unwrap(),
@@ -93,15 +91,13 @@ impl Network {
                         let privacy_result = private_nets.iter()
                             .any(|&priv_net| priv_net.contains(&subnet));
 
-                        return match privacy_result {
-                            true => Ok(subnet),
-                            false => Err(format!(r#"Subnet configured for network "{}" is not RFC 1918 compliant. Subnets must be in valid allocation for private networks."#, network_name))
-                        };
+                        if privacy_result {
+                            Ok(subnet)
+                        } else {
+                            Err(format!(r#"Subnet configured for network "{}" is not RFC 1918 compliant. Subnets must be in valid allocation for private networks."#, network_name))
+                        }
                     })?
             );
-
-            available_hosts = Some(subnet.unwrap().hosts());
-            allocated_hosts = Some(RefCell::new(HashSet::new()));
         } else {
             match network_toml.get("subnet") {
                 None => Ok(()),
@@ -109,12 +105,21 @@ impl Network {
             }?
         }
 
+        let available_hosts = match network_type {
+            NetworkType::Internal => Some(subnet.unwrap().hosts()),
+            NetworkType::Public => None,
+        };
+        let allocated_hosts: Option<RefCell<HashSet<Ipv4Addr>>> = match network_type {
+            NetworkType::Internal => Some(RefCell::new(HashSet::new())),
+            NetworkType::Public => None,
+        };
+
         Ok(Rc::new(Network {
             name: network_name,
-            network_type: network_type,
-            subnet: subnet,
-            available_hosts: available_hosts,
-            allocated_hosts: allocated_hosts,
+            network_type,
+            subnet,
+            available_hosts,
+            allocated_hosts,
         }))
     }
 
