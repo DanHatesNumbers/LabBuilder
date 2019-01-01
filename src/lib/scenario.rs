@@ -62,6 +62,8 @@ impl Scenario {
 
         scenario.systems.append(&mut systems?);
 
+        scenario.are_system_names_unique()?;
+
         Ok(scenario)
     }
 
@@ -87,6 +89,34 @@ impl Scenario {
         match first_dupe_name {
             Some(name) => Err(format!(
                 r#"Multiple networks parsed with name "{}". Network names must be unique."#,
+                name
+            )),
+            None => Ok(()),
+        }
+    }
+
+    fn are_system_names_unique(&self) -> Result<(), String> {
+        let names = self.systems.iter().fold(HashMap::new(), |mut acc, x| {
+            acc.entry((x.name).to_string())
+                .and_modify(|e| *e += 1)
+                .or_insert(1);
+
+            acc
+        });
+
+        let dup_names: Vec<&String> = names
+            .iter()
+            .filter_map(|n| match n.1 {
+                1 => None,
+                _ => Some(n.0),
+            })
+            .collect();
+
+        let first_dupe_name = dup_names.iter().nth(0);
+
+        match first_dupe_name {
+            Some(name) => Err(format!(
+                r#"Multiple systems parsed with name "{}". System names must be unique."#,
                 name
             )),
             None => Ok(()),
@@ -302,6 +332,35 @@ mod tests {
         assert_eq!(
             *Scenario::from_toml(&input).unwrap_err().description(),
             r#"Multiple networks parsed with name "TestNet". Network names must be unique."#
+                .to_string()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_scenario_with_duplicate_system_names_should_fail_with_msg(
+    ) -> Result<(), std::boxed::Box<std::error::Error>> {
+        let input = r#"
+            [scenario]
+            name = "Test scenario"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[systems]]
+            name = "Test System"
+            networks = ["TestNet"]
+            base_box = "Debian"
+            [[networks]]
+            name = "TestNet"
+            type = "Internal"
+            subnet = "192.168.0.0/24"
+        "#
+        .parse::<Value>()?;
+
+        assert_eq!(
+            *Scenario::from_toml(&input).unwrap_err().description(),
+            r#"Multiple systems parsed with name "Test System". System names must be unique."#
                 .to_string()
         );
         Ok(())
