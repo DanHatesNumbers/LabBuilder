@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[test]
-    fn configuring_networking_with_2_NICs_in_same_internal_network_should_work(
+    fn configuring_networking_with_2_interfaces_in_same_internal_network_should_work(
     ) -> Result<(), std::boxed::Box<std::error::Error>> {
         let scenario_toml = r#"
             [scenario]
