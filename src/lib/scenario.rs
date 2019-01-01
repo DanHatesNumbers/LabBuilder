@@ -6,6 +6,7 @@ use crate::lib::system::System;
 
 use ipnet::Ipv4Net;
 use toml::Value;
+use unicode_casefold::UnicodeCaseFold;
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -133,13 +134,17 @@ impl Scenario {
         builder.increase_indentation();
 
         for system in self.systems.iter() {
+            let system_name_lower = system.name.case_fold().collect::<String>();
             builder.add(format!(
                 r#"config.vm.define "{}" do |{}|"#,
-                system.name, system.name
+                system.name, system_name_lower
             ));
             builder.increase_indentation();
 
-            builder.add(format!(r#"{}.vm.box = "{}""#, system.name, system.base_box));
+            builder.add(format!(
+                r#"{}.vm.box = "{}""#,
+                system_name_lower, system.base_box
+            ));
 
             for net in system.networks.iter().cloned() {
                 match net.network_type {
@@ -147,7 +152,7 @@ impl Scenario {
                         for lease in system.leased_network_addresses[&net.name].iter() {
                             builder.add(format!(
                                 r#"{}.vm.network "private_network", ip: "{}", virtualbox__intnet: "{}""#,
-                                system.name, lease, net.name
+                                system_name_lower, lease, net.name
                             ));
                         }
                     }
@@ -444,13 +449,13 @@ mod tests {
         }
 
         let expected = r#"Vagrant.configure("2") do |config|
-    config.vm.define "Desktop" do |Desktop|
-        Desktop.vm.box = "Windows 10"
-        Desktop.vm.network "private_network", ip: "192.168.0.1", virtualbox__intnet: "LAN"
+    config.vm.define "Desktop" do |desktop|
+        desktop.vm.box = "Windows 10"
+        desktop.vm.network "private_network", ip: "192.168.0.1", virtualbox__intnet: "LAN"
     end
-    config.vm.define "Server" do |Server|
-        Server.vm.box = "Debian"
-        Server.vm.network "private_network", ip: "192.168.0.2", virtualbox__intnet: "LAN"
+    config.vm.define "Server" do |server|
+        server.vm.box = "Debian"
+        server.vm.network "private_network", ip: "192.168.0.2", virtualbox__intnet: "LAN"
     end
 end"#
             .to_string();
