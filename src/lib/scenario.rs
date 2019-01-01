@@ -134,14 +134,17 @@ impl Scenario {
         builder.increase_indentation();
 
         for system in self.systems.iter() {
+            let system_name_lower = system.name.case_fold().collect::<String>();
             builder.add(format!(
                 r#"config.vm.define "{}" do |{}|"#,
-                system.name,
-                system.name.case_fold().collect::<String>()
+                system.name, system_name_lower
             ));
             builder.increase_indentation();
 
-            builder.add(format!(r#"{}.vm.box = "{}""#, system.name, system.base_box));
+            builder.add(format!(
+                r#"{}.vm.box = "{}""#,
+                system_name_lower, system.base_box
+            ));
 
             for net in system.networks.iter().cloned() {
                 match net.network_type {
@@ -149,7 +152,7 @@ impl Scenario {
                         for lease in system.leased_network_addresses[&net.name].iter() {
                             builder.add(format!(
                                 r#"{}.vm.network "private_network", ip: "{}", virtualbox__intnet: "{}""#,
-                                system.name, lease, net.name
+                                system_name_lower, lease, net.name
                             ));
                         }
                     }
