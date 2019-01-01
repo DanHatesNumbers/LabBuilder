@@ -175,6 +175,7 @@ impl Scenario {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ipnet::Ipv4Net;
 
     #[test]
     fn parsing_toml_without_scenario_block_should_fail_with_msg(
